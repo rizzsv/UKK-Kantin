@@ -1,36 +1,195 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍽️ CanteenHub - Food Ordering System
 
-## Getting Started
+A modern, minimalist food ordering website for canteen management built with Next.js, TypeScript, and Tailwind CSS.
 
-First, run the development server:
+## ✨ Features
 
+- **Clean & Minimalist Design**: Professional blue-gray color scheme with ample white space
+- **Responsive Layout**: Fully responsive design that works on all devices
+- **Smooth Animations**: Eye-catching animations and transitions for better UX
+- **Menu Management**: Browse food and beverage items with search and filtering
+- **Order Tracking**: Track orders with status labels (Being Packaged, Shipped, Completed)
+- **Shopping Cart**: Add items, adjust quantities, and review before checkout
+- **User Profile**: Manage account information and view order history
+- **API Integration**: Ready-to-connect with backend API endpoints
+
+## 🎨 Design Highlights
+
+- Bold, easy-to-read typography
+- Large appetizing food photos
+- Gradient backgrounds with animated blob effects
+- Custom scrollbar styling
+- Smooth hover effects and transitions
+- Professional status badges
+- Mobile-first responsive design
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ installed
+- npm or yarn package manager
+
+### Installation
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Run the development server:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📁 Project Structure
 
-## Learn More
+```
+canteenhub/
+├── app/
+│   ├── about/          # About page
+│   ├── cart/           # Shopping cart page
+│   ├── orders/         # Order management page
+│   ├── profile/        # User profile page
+│   ├── layout.tsx      # Root layout with navbar
+│   ├── page.tsx        # Homepage with menu display
+│   └── globals.css     # Global styles and animations
+├── components/
+│   ├── Button.tsx      # Reusable button component
+│   ├── MenuCard.tsx    # Menu item card component
+│   ├── Navbar.tsx      # Navigation bar
+│   ├── OrderStatusBadge.tsx  # Order status indicator
+│   └── SearchBar.tsx   # Search input component
+└── lib/
+    ├── api.ts          # API client and types
+    └── hooks.ts        # Custom React hooks
+```
 
-To learn more about Next.js, take a look at the following resources:
+## 🔌 API Integration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The project is configured to work with the following API base URL:
+```
+https://ukk-p2.smktelkom-mlg.sch.id/api/
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Available Endpoints
 
-## Deploy on Vercel
+#### Menu Management
+- `POST /getmenumakanan` - Get food menu
+- `POST /getmenuminuman` - Get beverage menu
+- `GET /detail_menu/{id}` - Get menu details
+- `DELETE /delete_menu/{id}` - Delete menu item
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Order Management
+- `GET /showorder/{status}` - Get orders by status
+- `GET /showorderbymonthbysiswa/{date}` - Get orders by month
+- `GET /cetaknota/{id}` - Print receipt
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+#### Student Management
+- `POST /tambah_siswa` - Add student
+- `POST /update_student/{id}` - Update student
+
+#### Stan Management
+- `POST /reg_student` - Register student
+- `GET /get_maker` - Get maker data
+- `POST /get_all_stan` - Get all stalls
+
+### Authentication
+
+Set your authentication token in the API client:
+```typescript
+import { apiClient } from '@/lib/api';
+
+apiClient.setToken('your-bearer-token');
+apiClient.setMakerID('your-maker-id');
+```
+
+## 🎯 Order Status Labels
+
+The system supports three order statuses:
+- **📦 Being Packaged** (`dikemas`) - Order is being prepared
+- **🚚 Shipped** (`dikirim`) - Order is on the way
+- **✅ Completed** (`selesai`) - Order has been delivered
+
+## 🛠️ Technology Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **Icons**: Lucide React
+- **Image Optimization**: Next.js Image component
+
+## 📱 Pages
+
+### Homepage (/)
+- Hero section with animated blobs
+- Feature highlights
+- Menu grid with search and filters
+- Category filtering (All, Food, Beverages)
+
+### Orders (/orders)
+- Order list with status filters
+- Order details with menu information
+- Receipt printing functionality
+
+### Cart (/cart)
+- Shopping cart with quantity controls
+- Order summary with tax calculation
+- Proceed to checkout
+
+### Profile (/profile)
+- User information display
+- Editable profile fields
+- Order statistics
+
+### About (/about)
+- Company mission and values
+- Feature highlights
+- Contact information
+
+## 🎨 Color Palette
+
+- **Primary Blue**: #3B82F6 (blue-600)
+- **Dark Blue**: #1E40AF (blue-800)
+- **Gray**: #6B7280 (gray-500)
+- **Light Gray**: #F9FAFB (gray-50)
+- **White**: #FFFFFF
+
+## 📝 Customization
+
+### Changing Colors
+
+Edit the color values in components and Tailwind classes:
+- Primary: `blue-600` and `blue-800`
+- Secondary: `gray-600` and `gray-700`
+
+### Adding New Menu Items
+
+Update the mock data in `app/page.tsx` or connect to your API:
+```typescript
+const menuItems = await apiClient.getFoodMenu();
+```
+
+## 🚧 Future Enhancements
+
+- [ ] User authentication and authorization
+- [ ] Real-time order tracking with WebSocket
+- [ ] Payment gateway integration
+- [ ] Order history with filtering
+- [ ] Favorite items feature
+- [ ] Push notifications
+- [ ] Admin dashboard
+
+## 📄 License
+
+This project is for educational purposes.
+
+## 👨‍💻 Development
+
+Built with ❤️ using modern web technologies for the best user experience.
+
+---
+
+For questions or support, contact: info@canteenhub.com
