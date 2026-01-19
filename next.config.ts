@@ -17,6 +17,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'https://ukk-p2.smktelkom-mlg.sch.id/api/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -1,54 +1,125 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/Button';
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
+import { apiClient, MenuItem } from '@/lib/api';
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import Image from 'next/image';
 
-interface CartItem {
-  id: number;
-  nama: string;
-  harga: number;
-  foto: string;
+interface CartItem extends MenuItem {
   quantity: number;
 }
 
 export default function CartPage() {
-  // Mock cart data - replace with actual cart state management
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 1,
-      nama: 'Nasi Goreng Special',
-      harga: 25000,
-      foto: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
-      quantity: 2,
-    },
-    {
-      id: 3,
-      nama: 'Es Teh Manis',
-      harga: 5000,
-      foto: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
-      quantity: 1,
-    },
-  ]);
+  const router = useRouter();
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [discount, setDiscount] = useState(0);
+  const [discountCode, setDiscountCode] = useState('');
+
+  useEffect(() => {
+    // Load cart from localStorage
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    }
+
+    // Check for special discounts based on day/time
+    checkDiscounts();
+  }, []);
+
+  const checkDiscounts = () => {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+
+    // Weekend discount (Saturday & Sunday)
+    if (day === 0 || day === 6) {
+      setDiscount(10);
+      setDiscountCode('WEEKEND10');
+    }
+    // Happy hour (14:00-16:00)
+    else if (hour >= 14 && hour < 16) {
+      setDiscount(15);
+      setDiscountCode('HAPPYHOUR15');
+    }
+    // Friday special
+    else if (day === 5) {
+      setDiscount(5);
+      setDiscountCode('FRIDAY5');
+    }
+  };
+
+  const saveCart = (items: CartItem[]) => {
+    localStorage.setItem('cart', JSON.stringify(items));
+    setCartItems(items);
+  };
 
   const updateQuantity = (id: number, change: number) => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
-      )
+    const updated = cartItems.map(item =>
+      item.id === id
+        ? { ...item, quantity: Math.max(1, Math.min(item.stok, item.quantity + change)) }
+        : item
     );
+    saveCart(updated);
   };
 
   const removeItem = (id: number) => {
-    setCartItems(items => items.filter(item => item.id !== id));
+    const updated = cartItems.filter(item => item.id !== id);
+    saveCart(updated);
+  };
+
+  const clearCart = () => {
+    localStorage.removeItem('cart');
+    setCartItems([]);
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.harga * item.quantity, 0);
-  const tax = subtotal * 0.1; // 10% tax
-  const total = subtotal + tax;
+  const discountAmount = (subtotal * discount) / 100;
+  const total = subtotal - discountAmount;
+
+  const handleCheckout = async () => {
+    // Check if user is logged in
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      alert('Silakan login terlebih dahulu');
+      router.push('/login');
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      alert('Keranjang kosong');
+      return;
+    }
+
+    setLoading(true);
+    apiClient.setToken(token);
+
+    try {
+      // Create orders for each item
+      const orderPromises = cartItems.map(item =>
+        apiClient.createOrder({
+          menu_id: item.id,
+          jumlah: item.quantity,
+          total_harga: item.harga * item.quantity,
+        })
+      );
+
+      await Promise.all(orderPromises);
+
+      // Clear cart
+      clearCart();
+
+      alert('Pesanan berhasil dibuat!');
+      router.push('/orders');
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert(err instanceof Error ? err.message : 'Gagal membuat pesanan');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 pt-28 pb-20 px-4 sm:px-6 lg:px-8">
@@ -90,6 +161,7 @@ export default function CartPage() {
                           <p className="text-lg font-semibold text-blue-600">
                             Rp {item.harga.toLocaleString('id-ID')}
                           </p>
+                          <p className="text-sm text-gray-500">Stok: {item.stok}</p>
                         </div>
                         <button
                           onClick={() => removeItem(item.id)}
@@ -134,15 +206,31 @@ export default function CartPage() {
               <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-28">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Order Summary</h2>
 
+                {/* Discount Badge */}
+                {discount > 0 && (
+                  <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700 mb-1">
+                      <Tag className="w-5 h-5" />
+                      <span className="font-bold">Diskon Aktif!</span>
+                    </div>
+                    <p className="text-sm text-green-600">
+                      Kode: <span className="font-mono font-bold">{discountCode}</span>
+                    </p>
+                    <p className="text-sm text-green-600">Hemat {discount}%</p>
+                  </div>
+                )}
+
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between text-gray-600">
                     <span>Subtotal</span>
                     <span className="font-semibold">Rp {subtotal.toLocaleString('id-ID')}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Tax (10%)</span>
-                    <span className="font-semibold">Rp {tax.toLocaleString('id-ID')}</span>
-                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Diskon ({discount}%)</span>
+                      <span className="font-semibold">-Rp {discountAmount.toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
                   <div className="border-t border-gray-200 pt-4">
                     <div className="flex justify-between text-xl font-bold text-gray-800">
                       <span>Total</span>
@@ -151,12 +239,32 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <Button variant="primary" size="lg" className="w-full mb-3">
-                  Proceed to Checkout
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  className="w-full mb-3"
+                  onClick={handleCheckout}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Memproses...
+                    </span>
+                  ) : (
+                    <>
+                      Checkout Sekarang
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </>
+                  )}
                 </Button>
-                <Button variant="outline" size="md" className="w-full">
-                  Continue Shopping
+                <Button 
+                  variant="outline" 
+                  size="md" 
+                  className="w-full"
+                  onClick={() => router.push('/')}
+                >
+                  Lanjut Belanja
                 </Button>
               </div>
             </div>
@@ -164,11 +272,11 @@ export default function CartPage() {
         ) : (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🛒</div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">Your Cart is Empty</h3>
-            <p className="text-gray-500 mb-8">Add some delicious items to get started!</p>
-            <Button variant="primary" size="lg">
+            <h3 className="text-2xl font-bold text-gray-700 mb-2">Keranjang Kosong</h3>
+            <p className="text-gray-500 mb-8">Tambahkan menu favorit Anda!</p>
+            <Button variant="primary" size="lg" onClick={() => router.push('/')}>
               <ShoppingBag className="w-5 h-5 mr-2" />
-              Browse Menu
+              Lihat Menu
             </Button>
           </div>
         )}

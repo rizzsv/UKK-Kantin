@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MenuItem } from '@/lib/api';
+import { MenuItem, apiClient } from '@/lib/api';
 import { MenuCard } from '@/components/MenuCard';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/Button';
@@ -13,73 +13,115 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'makanan' | 'minuman'>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock data for demonstration - replace with actual API call
+  // Fetch real data from API
   useEffect(() => {
-    // Simulate API call
-    const mockData: MenuItem[] = [
-      {
-        id: 1,
-        nama: 'Nasi Goreng Special',
-        harga: 25000,
-        deskripsi: 'Delicious fried rice with chicken, vegetables, and special spices',
-        foto: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
-        kategori: 'makanan',
-        stok: 15,
-      },
-      {
-        id: 2,
-        nama: 'Mie Ayam',
-        harga: 20000,
-        deskripsi: 'Traditional chicken noodles with savory broth',
-        foto: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80',
-        kategori: 'makanan',
-        stok: 10,
-      },
-      {
-        id: 3,
-        nama: 'Es Teh Manis',
-        harga: 5000,
-        deskripsi: 'Refreshing sweet iced tea',
-        foto: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
-        kategori: 'minuman',
-        stok: 50,
-      },
-      {
-        id: 4,
-        nama: 'Jus Jeruk',
-        harga: 10000,
-        deskripsi: 'Fresh orange juice',
-        foto: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&q=80',
-        kategori: 'minuman',
-        stok: 20,
-      },
-      {
-        id: 5,
-        nama: 'Sate Ayam',
-        harga: 30000,
-        deskripsi: 'Grilled chicken skewers with peanut sauce',
-        foto: 'https://images.unsplash.com/photo-1529563021893-cc83c992d75d?w=500&q=80',
-        kategori: 'makanan',
-        stok: 8,
-      },
-      {
-        id: 6,
-        nama: 'Bakso',
-        harga: 18000,
-        deskripsi: 'Indonesian meatball soup',
-        foto: 'https://images.unsplash.com/photo-1606491956391-6b3c4e0b8136?w=500&q=80',
-        kategori: 'makanan',
-        stok: 12,
-      },
-    ];
+    const fetchMenuData = async () => {
+      try {
+        setLoading(true);
+        setError('');
 
-    setTimeout(() => {
-      setMenuItems(mockData);
-      setFilteredItems(mockData);
-      setLoading(false);
-    }, 800);
-  }, []);
+        // Load token from localStorage if exists
+        const token = localStorage.getItem('authToken');
+        console.log('🔐 Auth Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'No token found');
+        
+        if (token) {
+          apiClient.setToken(token);
+          console.log('✅ Token set to API client');
+        } else {
+          console.log('⚠️ No token found, attempting to fetch without auth');
+        }
+
+        // Fetch both food and beverage menus
+        const [foodData, beverageData] = await Promise.all([
+          apiClient.getFoodMenu(''),
+          apiClient.getBeverageMenu(''),
+        ]);
+
+        // Combine and format the data
+        const combinedMenu: MenuItem[] = [
+          ...foodData.map((item: any) => ({
+            id: item.id,
+            nama: item.nama,
+            harga: parseFloat(item.harga) || 0,
+            deskripsi: item.deskripsi || '',
+            foto: item.foto || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80',
+            kategori: 'makanan' as const,
+            stok: parseInt(item.stok) || 0,
+          })),
+          ...beverageData.map((item: any) => ({
+            id: item.id,
+            nama: item.nama,
+            harga: parseFloat(item.harga) || 0,
+            deskripsi: item.deskripsi || '',
+            foto: item.foto || 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
+            kategori: 'minuman' as const,
+            stok: parseInt(item.stok) || 0,
+          })),
+        ];
+
+        setMenuItems(combinedMenu);
+        setFilteredItems(combinedMenu);
+      } catch (err) {
+        console.error('Error fetching menu:', err);
+        
+        // If unauthorized, use mock data as fallback
+        if (err instanceof Error && err.message.includes('Unauthorized')) {
+          console.warn('⚠️ Using mock data (token expired or not logged in)');
+          const mockData: MenuItem[] = [
+            {
+              id: 1,
+              nama: 'Nasi Goreng Special',
+              harga: 25000,
+              deskripsi: 'Delicious fried rice with chicken and vegetables',
+              foto: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
+              kategori: 'makanan',
+              stok: 15,
+            },
+            {
+              id: 2,
+              nama: 'Mie Ayam',
+              harga: 20000,
+              deskripsi: 'Traditional chicken noodles with savory broth',
+              foto: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80',
+              kategori: 'makanan',
+              stok: 10,
+            },
+            {
+              id: 3,
+              nama: 'Es Teh Manis',
+              harga: 5000,
+              deskripsi: 'Refreshing sweet iced tea',
+              foto: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
+              kategori: 'minuman',
+              stok: 50,
+            },
+            {
+              id: 4,
+              nama: 'Jus Jeruk',
+              harga: 10000,
+              deskripsi: 'Fresh orange juice',
+              foto: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&q=80',
+              kategori: 'minuman',
+              stok: 20,
+            },
+          ];
+          setMenuItems(mockData);
+          setFilteredItems(mockData);
+          setError(''); // Clear error, show mock data instead
+        } else {
+          setError('Gagal memuat menu. Silakan coba lagi.');
+          setMenuItems([]);
+          setFilteredItems([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMenuData();
+  }, []); // Only fetch once on mount
 
   // Filter items based on search and category
   useEffect(() => {
@@ -99,9 +141,28 @@ export default function Home() {
   }, [searchQuery, activeCategory, menuItems]);
 
   const handleAddToCart = (item: MenuItem) => {
-    // Implement cart logic
-    console.log('Added to cart:', item);
-    alert(`${item.nama} added to cart!`);
+    // Get current cart from localStorage
+    const currentCart = localStorage.getItem('cart');
+    let cart: Array<MenuItem & { quantity: number }> = currentCart ? JSON.parse(currentCart) : [];
+
+    // Check if item already in cart
+    const existingItemIndex = cart.findIndex(cartItem => cartItem.id === item.id);
+
+    if (existingItemIndex > -1) {
+      // Increase quantity if already in cart
+      if (cart[existingItemIndex].quantity < item.stok) {
+        cart[existingItemIndex].quantity += 1;
+        localStorage.setItem('cart', JSON.stringify(cart));
+        alert(`${item.nama} ditambahkan ke keranjang! Jumlah: ${cart[existingItemIndex].quantity}`);
+      } else {
+        alert(`Stok ${item.nama} tidak mencukupi!`);
+      }
+    } else {
+      // Add new item to cart
+      cart.push({ ...item, quantity: 1 });
+      localStorage.setItem('cart', JSON.stringify(cart));
+      alert(`${item.nama} ditambahkan ke keranjang!`);
+    }
   };
 
   return (
@@ -209,7 +270,16 @@ export default function Home() {
           ) : (
             <div className="text-center py-20">
               <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-2xl font-bold text-gray-700 mb-2">No items found</h3>
+              error ? (
+            <div className="text-center py-20">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h3 className="text-2xl font-bold text-gray-700 mb-2">Gagal Memuat Menu</h3>
+              <p className="text-gray-500 mb-6">{error}</p>
+              <Button onClick={() => window.location.reload()} variant="primary">
+                Coba Lagi
+              </Button>
+            </div>
+          ) : <h3 className="text-2xl font-bold text-gray-700 mb-2">No items found</h3>
               <p className="text-gray-500">Try adjusting your search or filter</p>
             </div>
           )}
