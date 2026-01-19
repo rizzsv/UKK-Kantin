@@ -188,7 +188,7 @@ This project is for educational purposes.
 
 ## 👨‍💻 Development
 
-Built with ❤️ using modern web technologies for the best user experience.
+Hilmy
 
 ---
 
