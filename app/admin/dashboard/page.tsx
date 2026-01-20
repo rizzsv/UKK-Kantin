@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
+import { menuApiClient } from '@/lib/menu-api';
 import { Button } from '@/components/Button';
 import { Store, User, Phone, LogOut, Edit2, Save, X, Package, TrendingUp, Users as UsersIcon } from 'lucide-react';
 import { StudentsManagement } from '@/components/admin/StudentsManagement';
@@ -72,6 +73,10 @@ export default function AdminDashboard() {
     const token = localStorage.getItem('adminAuthToken');
     if (token) {
       apiClient.setToken(token);
+      menuApiClient.setToken(token); // Set token to new menu API client
+      console.log('✅ Admin token loaded to both API clients');
+    } else {
+      console.warn('⚠️ No admin token found');
     }
 
     setIsInitialized(true);
@@ -84,6 +89,7 @@ export default function AdminDashboard() {
     localStorage.removeItem('adminUsername');
     localStorage.removeItem('stallData');
     apiClient.setToken('');
+    menuApiClient.setToken(''); // Clear token from menu API client too
     
     // Redirect to login
     router.push('/admin/login');

@@ -34,33 +34,49 @@ export default function Home() {
         }
 
         // Fetch both food and beverage menus
-        const [foodData, beverageData] = await Promise.all([
+        const [foodResponse, beverageResponse] = await Promise.all([
           apiClient.getFoodMenu(''),
           apiClient.getBeverageMenu(''),
         ]);
 
-        // Combine and format the data
+        console.log('🍔 Food Response:', foodResponse);
+        console.log('🥤 Beverage Response:', beverageResponse);
+
+        // Handle API response structure (may have .data wrapper or direct array)
+        const foodData = Array.isArray(foodResponse) ? foodResponse : (foodResponse?.data || []);
+        const beverageData = Array.isArray(beverageResponse) ? beverageResponse : (beverageResponse?.data || []);
+
+        // Combine and format the data with Indonesian field names support
         const combinedMenu: MenuItem[] = [
           ...foodData.map((item: any) => ({
-            id: item.id,
-            nama: item.nama,
-            harga: parseFloat(item.harga) || 0,
-            deskripsi: item.deskripsi || '',
-            foto: item.foto || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80',
+            id: item.id || item.id_menu || item.menu_id,
+            nama: item.nama || item.nama_makanan || item.food_name || '',
+            harga: parseFloat(item.harga || item.price) || 0,
+            deskripsi: item.deskripsi || item.description || '',
+            foto: item.foto || item.photo || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80',
             kategori: 'makanan' as const,
-            stok: parseInt(item.stok) || 0,
+            // Include additional fields
+            id_menu: item.id_menu || item.menu_id,
+            id_stan: item.id_stan || item.stall_id,
+            discount_name: item.nama_diskon || item.discount_name,
+            discount_percentage: item.persentase_diskon || item.discount_percentage,
           })),
           ...beverageData.map((item: any) => ({
-            id: item.id,
-            nama: item.nama,
-            harga: parseFloat(item.harga) || 0,
-            deskripsi: item.deskripsi || '',
-            foto: item.foto || 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
+            id: item.id || item.id_menu || item.menu_id,
+            nama: item.nama || item.nama_makanan || item.food_name || '',
+            harga: parseFloat(item.harga || item.price) || 0,
+            deskripsi: item.deskripsi || item.description || '',
+            foto: item.foto || item.photo || 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
             kategori: 'minuman' as const,
-            stok: parseInt(item.stok) || 0,
+            // Include additional fields
+            id_menu: item.id_menu || item.menu_id,
+            id_stan: item.id_stan || item.stall_id,
+            discount_name: item.nama_diskon || item.discount_name,
+            discount_percentage: item.persentase_diskon || item.discount_percentage,
           })),
         ];
 
+        console.log('📦 Combined Menu:', combinedMenu);
         setMenuItems(combinedMenu);
         setFilteredItems(combinedMenu);
       } catch (err) {
@@ -77,7 +93,6 @@ export default function Home() {
               deskripsi: 'Delicious fried rice with chicken and vegetables',
               foto: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
               kategori: 'makanan',
-              stok: 15,
             },
             {
               id: 2,
@@ -86,7 +101,6 @@ export default function Home() {
               deskripsi: 'Traditional chicken noodles with savory broth',
               foto: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80',
               kategori: 'makanan',
-              stok: 10,
             },
             {
               id: 3,
@@ -95,7 +109,6 @@ export default function Home() {
               deskripsi: 'Refreshing sweet iced tea',
               foto: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
               kategori: 'minuman',
-              stok: 50,
             },
             {
               id: 4,
@@ -104,7 +117,6 @@ export default function Home() {
               deskripsi: 'Fresh orange juice',
               foto: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&q=80',
               kategori: 'minuman',
-              stok: 20,
             },
           ];
           setMenuItems(mockData);
@@ -150,13 +162,9 @@ export default function Home() {
 
     if (existingItemIndex > -1) {
       // Increase quantity if already in cart
-      if (cart[existingItemIndex].quantity < item.stok) {
-        cart[existingItemIndex].quantity += 1;
-        localStorage.setItem('cart', JSON.stringify(cart));
-        alert(`${item.nama} ditambahkan ke keranjang! Jumlah: ${cart[existingItemIndex].quantity}`);
-      } else {
-        alert(`Stok ${item.nama} tidak mencukupi!`);
-      }
+      cart[existingItemIndex].quantity += 1;
+      localStorage.setItem('cart', JSON.stringify(cart));
+      alert(`${item.nama} ditambahkan ke keranjang! Jumlah: ${cart[existingItemIndex].quantity}`);
     } else {
       // Add new item to cart
       cart.push({ ...item, quantity: 1 });

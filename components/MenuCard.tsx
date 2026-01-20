@@ -4,6 +4,7 @@ import { MenuItem } from '@/lib/api';
 import Image from 'next/image';
 import { ShoppingCart, Plus } from 'lucide-react';
 import { Button } from './Button';
+import { getImageUrl } from '@/lib/utils';
 
 interface MenuCardProps {
   item: MenuItem;
@@ -15,20 +16,12 @@ export function MenuCard({ item, onAddToCart }: MenuCardProps) {
     <div className="group bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-2">
       {/* Image Container */}
       <div className="relative h-56 w-full bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-        {item.foto ? (
-          <Image
-            src={item.foto}
-            alt={item.nama}
-            fill
-            className="object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-4xl">🍽️</span>
-            </div>
-          </div>
-        )}
+        <Image
+          src={getImageUrl(item.foto)}
+          alt={item.nama}
+          fill
+          className="object-cover group-hover:scale-110 transition-transform duration-500"
+        />
         
         {/* Category Badge */}
         <div className="absolute top-4 left-4">

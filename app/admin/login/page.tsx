@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api';
+import { menuApiClient } from '@/lib/menu-api';
 import { Button } from '@/components/Button';
 import { Store, User, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -57,8 +58,9 @@ export default function AdminLogin() {
       const accessToken = response?.access_token || response?.token;
       
       if (accessToken) {
-        // Set token to API client
+        // Set token to API clients
         apiClient.setToken(accessToken);
+        menuApiClient.setToken(accessToken); // Set to menu API client too
         
         // Store in localStorage
         localStorage.setItem('adminAuthToken', accessToken);

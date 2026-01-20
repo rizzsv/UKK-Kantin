@@ -1,13 +1,39 @@
 const BASE_URL = '/api'; // Use proxy instead of direct URL
 
 export interface MenuItem {
-  id: number;
+  id: number | null;
   nama: string;
   harga: number;
   deskripsi: string;
   foto: string;
   kategori: 'makanan' | 'minuman';
-  stok: number;
+  stok?: number;
+  // New fields from API response
+  food_name?: string;
+  price?: number;
+  type?: 'food' | 'drink';
+  photo?: string;
+  description?: string;
+  id_stan?: number;
+  stall_id?: number;
+  maker_id?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  id_menu?: number;
+  menu_id?: number;
+  discount_name?: string | null;
+  discount_percentage?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  discount_id?: number | null;
+  // Indonesian field names
+  nama_makanan?: string;
+  jenis?: string;
+  nama_diskon?: string | null;
+  persentase_diskon?: number | null;
+  tanggal_awal?: string | null;
+  tanggal_akhir?: string | null;
+  id_diskon?: number | null;
 }
 
 export interface Order {
@@ -86,6 +112,12 @@ class ApiClient {
         if (endpoint.includes('login')) {
           throw new Error('Username atau password salah. Silakan coba lagi.');
         } else {
+          // For menu endpoints that might be public, provide a more helpful message
+          if (endpoint.includes('getmenufood') || endpoint.includes('getmenuminuman')) {
+            console.warn('Menu endpoint returned 401. This might be a backend configuration issue.');
+            // Return empty array for menu endpoints instead of throwing
+            return [];
+          }
           throw new Error('Unauthorized. Silakan login terlebih dahulu.');
         }
       } else if (response.status === 404) {
@@ -108,24 +140,30 @@ class ApiClient {
   }
 
   // Menu Management
-  async getFoodMenu(search: string = ''): Promise<MenuItem[]> {
+  async getFoodMenu(search: string = ''): Promise<any> {
     const formData = new FormData();
     formData.append('search', search);
 
-    return this.request('/getmenumakanan', {
+    const response = await this.request('/getmenufood', {
       method: 'POST',
       body: formData,
     });
+    
+    // Return the response as-is (may have .data wrapper)
+    return response;
   }
 
-  async getBeverageMenu(search: string = ''): Promise<MenuItem[]> {
+  async getBeverageMenu(search: string = ''): Promise<any> {
     const formData = new FormData();
     formData.append('search', search);
 
-    return this.request('/getmenuminuman', {
+    const response = await this.request('/getmenuminuman', {
       method: 'POST',
       body: formData,
     });
+    
+    // Return the response as-is (may have .data wrapper)
+    return response;
   }
 
   async getMenuDetails(id: number): Promise<MenuItem> {
@@ -296,6 +334,30 @@ class ApiClient {
     return this.request(`/delete_siswa/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // User Profile
+  async getUserProfile(): Promise<{
+    id: number;
+    student_name?: string;
+    nama_siswa?: string;
+    address?: string;
+    alamat?: string;
+    phone?: string;
+    telp?: string;
+    photo?: string | null;
+    foto?: string | null;
+    user_id: number;
+    maker_id: number;
+    created_at: string;
+    updated_at: string;
+    username: string;
+    role: string;
+  }> {
+    const response = await this.request('/get_profile', {
+      method: 'GET',
+    });
+    return response.data || response;
   }
 
   // Authentication

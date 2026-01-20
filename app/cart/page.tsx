@@ -6,6 +6,7 @@ import { Button } from '@/components/Button';
 import { apiClient, MenuItem } from '@/lib/api';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import Image from 'next/image';
+import { getImageUrl } from '@/lib/utils';
 
 interface CartItem extends MenuItem {
   quantity: number;
@@ -146,7 +147,7 @@ export default function CartPage() {
                     {/* Image */}
                     <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
                       <Image
-                        src={item.foto}
+                        src={getImageUrl(item.foto)}
                         alt={item.nama}
                         fill
                         className="object-cover"

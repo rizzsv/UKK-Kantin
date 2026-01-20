@@ -5,6 +5,8 @@ import { Button } from '@/components/Button';
 import { User, Phone, MapPin, Camera, Save, LogOut, Package, CheckCircle, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api';
+import { getImageUrl } from '@/lib/utils';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -24,49 +26,66 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    const loadUserData = () => {
+    const loadUserData = async () => {
       // Check if user is logged in
       const isLoggedIn = localStorage.getItem('isLoggedIn');
+      const token = localStorage.getItem('authToken');
       
-      if (!isLoggedIn) {
+      if (!isLoggedIn || !token) {
         // Redirect to login if not logged in
         router.push('/login');
         return;
       }
 
-      // Load user data from localStorage
-      const userData = localStorage.getItem('userData');
-      
-      if (userData) {
-        try {
-          const parsed = JSON.parse(userData);
-          console.log('📦 Profile - User Data:', parsed);
-          
-          setProfile({
-            nama_siswa: parsed.nama_siswa || parsed.name || 'User',
-            username: parsed.username || '',
-            telp: parsed.telp || parsed.phone || '',
-            alamat: parsed.alamat || parsed.address || '',
-            foto: parsed.foto || parsed.photo || '',
-          });
-        } catch (err) {
-          console.error('Error parsing user data:', err);
-        }
-      } else {
-        // If no userData, try registered user as fallback
-        const registeredUser = localStorage.getItem('registeredUser');
-        if (registeredUser) {
+      try {
+        // Set token for API client
+        apiClient.setToken(token);
+        
+        // Fetch profile from API
+        const profileData = await apiClient.getUserProfile();
+        console.log('📦 Profile - API Response:', profileData);
+        
+        // Handle both English and Indonesian field names from API
+        setProfile({
+          nama_siswa: profileData.student_name || profileData.nama_siswa || 'User',
+          username: profileData.username || '',
+          telp: profileData.phone || profileData.telp || '',
+          alamat: profileData.address || profileData.alamat || '',
+          foto: profileData.photo || profileData.foto || '',
+        });
+        
+        // Update localStorage with fresh data
+        localStorage.setItem('userData', JSON.stringify({
+          nama_siswa: profileData.student_name || profileData.nama_siswa,
+          username: profileData.username,
+          telp: profileData.phone || profileData.telp,
+          alamat: profileData.address || profileData.alamat,
+          foto: profileData.photo || profileData.foto,
+          phone: profileData.phone || profileData.telp,
+          address: profileData.address || profileData.alamat,
+          photo: profileData.photo || profileData.foto,
+          id: profileData.id,
+          user_id: profileData.user_id,
+          maker_id: profileData.maker_id,
+          role: profileData.role,
+        }));
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        
+        // Fallback to localStorage if API fails
+        const userData = localStorage.getItem('userData');
+        if (userData) {
           try {
-            const parsed = JSON.parse(registeredUser);
+            const parsed = JSON.parse(userData);
             setProfile({
-              nama_siswa: parsed.nama_siswa || 'User',
+              nama_siswa: parsed.nama_siswa || parsed.student_name || 'User',
               username: parsed.username || '',
-              telp: parsed.telp || '',
-              alamat: parsed.alamat || '',
-              foto: parsed.foto || '',
+              telp: parsed.telp || parsed.phone || '',
+              alamat: parsed.alamat || parsed.address || '',
+              foto: parsed.foto || parsed.photo || '',
             });
           } catch (err) {
-            console.error('Error parsing registered user:', err);
+            console.error('Error parsing user data:', err);
           }
         }
       }
@@ -160,9 +179,9 @@ export default function ProfilePage() {
             <div className="flex flex-col lg:flex-row items-center lg:items-end gap-6 -mt-16 mb-8">
               <div className="relative group">
                 <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-gray-100">
-                  {profile.foto ? (
+                  {getImageUrl(profile.foto, false) ? (
                     <Image
-                      src={profile.foto}
+                      src={getImageUrl(profile.foto)!}
                       alt={profile.nama_siswa}
                       width={128}
                       height={128}
