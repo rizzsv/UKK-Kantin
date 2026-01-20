@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/Button';
 import { apiClient, MenuItem } from '@/lib/api';
+import { AuthGuard } from '@/components/AuthGuard';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/utils';
@@ -60,7 +61,7 @@ export default function CartPage() {
   const updateQuantity = (id: number, change: number) => {
     const updated = cartItems.map(item =>
       item.id === id
-        ? { ...item, quantity: Math.max(1, Math.min(item.stok, item.quantity + change)) }
+        ? { ...item, quantity: Math.max(1, item.quantity + change) }
         : item
     );
     saveCart(updated);
@@ -98,16 +99,29 @@ export default function CartPage() {
     apiClient.setToken(token);
 
     try {
-      // Create orders for each item
-      const orderPromises = cartItems.map(item =>
+      // Group items by id_stan (stall)
+      const groupedByStall = cartItems.reduce((acc, item) => {
+        const stallId = item.id_stan || item.stall_id || 19; // Default stall ID if not set
+        if (!acc[stallId]) {
+          acc[stallId] = [];
+        }
+        acc[stallId].push({
+          id_menu: item.id_menu || item.menu_id || item.id || 0,
+          qty: item.quantity,
+        });
+        return acc;
+      }, {} as Record<number, Array<{ id_menu: number; qty: number }>>);
+
+      // Create orders for each stall
+      const orderPromises = Object.entries(groupedByStall).map(([stallId, items]) =>
         apiClient.createOrder({
-          menu_id: item.id,
-          jumlah: item.quantity,
-          total_harga: item.harga * item.quantity,
+          id_stan: parseInt(stallId),
+          pesan: items,
         })
       );
 
-      await Promise.all(orderPromises);
+      const responses = await Promise.all(orderPromises);
+      console.log('Order responses:', responses);
 
       // Clear cart
       clearCart();
@@ -123,6 +137,7 @@ export default function CartPage() {
   };
 
   return (
+    <AuthGuard requiredRole="student">
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto max-w-6xl">
         {/* Header */}
@@ -162,7 +177,6 @@ export default function CartPage() {
                           <p className="text-lg font-semibold text-blue-600">
                             Rp {item.harga.toLocaleString('id-ID')}
                           </p>
-                          <p className="text-sm text-gray-500">Stok: {item.stok}</p>
                         </div>
                         <button
                           onClick={() => removeItem(item.id)}
@@ -283,5 +297,6 @@ export default function CartPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }

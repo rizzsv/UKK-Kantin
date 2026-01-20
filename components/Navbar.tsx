@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ShoppingCart, User, UtensilsCrossed, ChevronDown, UserCircle, Shield } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { getCurrentUser, logout } from '@/lib/auth';
 
 export function Navbar() {
   const [cartCount, setCartCount] = useState(0);
@@ -165,7 +166,8 @@ export function Navbar() {
 
                       <button
                         onClick={() => {
-                          localStorage.clear();
+                          const user = getCurrentUser();
+                          logout(user?.role);
                           window.location.href = '/';
                         }}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left"

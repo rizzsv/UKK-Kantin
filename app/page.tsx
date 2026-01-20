@@ -260,8 +260,73 @@ export default function Home() {
 
           {/* Menu Grid */}
           {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="relative mb-6">
+                {/* Animated Food Icons */}
+                <div className="text-7xl animate-bounce">🍜</div>
+                <div className="absolute -top-4 -right-8 text-4xl animate-spin-slow">🍕</div>
+                <div className="absolute -bottom-2 -left-8 text-3xl animate-pulse">🍔</div>
+              </div>
+              <p className="text-gray-600 text-lg font-semibold">Memuat menu lezat untuk Anda...</p>
+              <p className="text-gray-500 text-sm mt-2">Tunggu sebentar ya! 😋</p>
+            </div>
+          ) : error ? (
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white rounded-3xl shadow-xl p-12 text-center overflow-hidden relative">
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-100 rounded-full -ml-12 -mb-12 opacity-50"></div>
+                
+                {/* Animated Food Icons */}
+                <div className="mb-6 relative">
+                  <div className="text-8xl animate-wiggle inline-block">😢</div>
+                  <div className="absolute -top-2 -right-4 text-4xl animate-float">🍝</div>
+                  <div className="absolute -bottom-2 -left-4 text-4xl animate-float animation-delay-1000">🥗</div>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-3xl font-bold text-gray-900 mb-3">
+                  Waduh! Menu Lagi Istirahat
+                </h3>
+                
+                {/* Message */}
+                <p className="text-gray-600 mb-2 text-lg">
+                  Menu kami sedang mengalami kendala teknis
+                </p>
+                <p className="text-gray-500 mb-8 text-sm bg-gray-50 rounded-lg p-3 inline-block">
+                  {error}
+                </p>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button 
+                    onClick={() => window.location.reload()} 
+                    variant="primary"
+                    size="lg"
+                    className="shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Coba Lagi
+                  </Button>
+                  <Button 
+                    onClick={() => setError('')}
+                    variant="outline"
+                    size="lg"
+                    className="hover:scale-105 transition-transform"
+                  >
+                    Tutup
+                  </Button>
+                </div>
+
+                {/* Help Text */}
+                <div className="mt-8 pt-6 border-t border-gray-200">
+                  <p className="text-sm text-gray-500">
+                    🍴 <span className="font-semibold">Jangan khawatir!</span> Menu akan segera kembali tersedia
+                  </p>
+                </div>
+              </div>
             </div>
           ) : filteredItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -276,19 +341,88 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">🔍</div>
-              error ? (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">⚠️</div>
-              <h3 className="text-2xl font-bold text-gray-700 mb-2">Gagal Memuat Menu</h3>
-              <p className="text-gray-500 mb-6">{error}</p>
-              <Button onClick={() => window.location.reload()} variant="primary">
-                Coba Lagi
-              </Button>
-            </div>
-          ) : <h3 className="text-2xl font-bold text-gray-700 mb-2">No items found</h3>
-              <p className="text-gray-500">Try adjusting your search or filter</p>
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white rounded-3xl shadow-xl p-12 text-center overflow-hidden relative">
+                {/* Background Decoration */}
+                <div className="absolute top-0 left-0 w-40 h-40 bg-blue-100 rounded-full -ml-20 -mt-20 opacity-50"></div>
+                <div className="absolute bottom-0 right-0 w-32 h-32 bg-orange-100 rounded-full -mr-16 -mb-16 opacity-50"></div>
+                
+                {/* Empty State with Food Animation */}
+                <div className="mb-6 relative">
+                  <div className="inline-flex items-center justify-center">
+                    <div className="text-8xl animate-bounce-slow">🍽️</div>
+                  </div>
+                  <div className="absolute -top-4 -right-12 text-5xl animate-float">🔍</div>
+                  <div className="absolute top-8 -left-12 text-4xl animate-float animation-delay-500">🥘</div>
+                  <div className="absolute -bottom-2 right-4 text-3xl animate-pulse">✨</div>
+                </div>
+
+                {/* Title */}
+                <h3 className="text-3xl font-bold text-gray-900 mb-3">
+                  {searchQuery ? 'Menu Tidak Ditemukan' : 'Menu Kosong'}
+                </h3>
+                
+                {/* Message */}
+                <p className="text-gray-600 mb-8 text-lg">
+                  {searchQuery 
+                    ? (
+                      <>
+                        Tidak ada menu yang cocok dengan <span className="font-bold text-blue-600">"{searchQuery}"</span>
+                        <div className="mt-2 text-sm text-gray-500">Coba kata kunci lain atau pilih kategori berbeda</div>
+                      </>
+                    )
+                    : (
+                      <>
+                        Belum ada {activeCategory === 'makanan' ? '🍔 makanan' : activeCategory === 'minuman' ? '🥤 minuman' : 'menu'} yang tersedia
+                        <div className="mt-2 text-sm text-gray-500">Chef kami sedang menyiapkan menu spesial!</div>
+                      </>
+                    )
+                  }
+                </p>
+
+                {/* Suggestions Box */}
+                <div className="bg-gradient-to-br from-blue-50 to-orange-50 rounded-2xl p-6 mb-8 border border-blue-100">
+                  <div className="text-4xl mb-3">💡</div>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">Yang bisa kamu coba:</p>
+                  <ul className="text-sm text-gray-600 space-y-2 text-left max-w-xs mx-auto">
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Ubah kata kunci pencarian</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Pilih kategori "All Menu"</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="text-green-500">✓</span>
+                      <span>Reset semua filter</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button 
+                    onClick={() => {
+                      setSearchQuery('');
+                      setActiveCategory('all');
+                    }}
+                    variant="primary"
+                    size="lg"
+                    className="shadow-lg hover:shadow-xl transition-all hover:scale-105"
+                  >
+                    🔄 Reset Filter
+                  </Button>
+                  <Button 
+                    onClick={() => window.location.reload()}
+                    variant="outline"
+                    size="lg"
+                    className="hover:scale-105 transition-transform"
+                  >
+                    ♻️ Refresh Halaman
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>

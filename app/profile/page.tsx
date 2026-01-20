@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
+import { AuthGuard } from '@/components/AuthGuard';
 import { User, Phone, MapPin, Camera, Save, LogOut, Package, CheckCircle, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -158,6 +159,7 @@ export default function ProfilePage() {
   }
 
   return (
+    <AuthGuard requiredRole="student">
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto max-w-4xl">
         {/* Header */}
@@ -352,5 +354,6 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

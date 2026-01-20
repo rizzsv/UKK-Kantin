@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient, Order } from '@/lib/api';
 import { Button } from '@/components/Button';
+import { AuthGuard } from '@/components/AuthGuard';
 import { Package, Clock, CheckCircle, Printer, Calendar } from 'lucide-react';
 
 export default function OrdersPage() {
@@ -111,6 +112,7 @@ export default function OrdersPage() {
   };
 
   return (
+    <AuthGuard requiredRole="student">
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto max-w-6xl">
         {/* Header */}
@@ -261,5 +263,6 @@ export default function OrdersPage() {
         )}
       </div>
     </div>
+    </AuthGuard>
   );
 }

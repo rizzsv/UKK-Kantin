@@ -229,18 +229,18 @@ class ApiClient {
 
   // Order Management
   async createOrder(data: {
-    menu_id: number;
-    jumlah: number;
-    total_harga: number;
+    id_stan: number;
+    pesan: Array<{
+      id_menu: number;
+      qty: number;
+    }>;
   }): Promise<any> {
-    const formData = new FormData();
-    formData.append('menu_id', data.menu_id.toString());
-    formData.append('jumlah', data.jumlah.toString());
-    formData.append('total_harga', data.total_harga.toString());
-
     return this.request('/pesan', {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
     });
   }
 

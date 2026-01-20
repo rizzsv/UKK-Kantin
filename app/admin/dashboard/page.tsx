@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { menuApiClient } from '@/lib/menu-api';
 import { Button } from '@/components/Button';
+import { AuthGuard } from '@/components/AuthGuard';
 import { Store, User, Phone, LogOut, Edit2, Save, X, Package, TrendingUp, Users as UsersIcon } from 'lucide-react';
 import { StudentsManagement } from '@/components/admin/StudentsManagement';
 import { MenuManagement } from '@/components/admin/MenuManagement';
@@ -34,12 +35,15 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     // Check if admin is logged in
-    const isLoggedIn = localStorage.getItem('isAdminLoggedIn');
-    if (!isLoggedIn) {
-      router.push('/admin/login');
+    const loggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
+    setIsLoggedIn(loggedIn);
+
+    if (!loggedIn) {
+      setIsInitialized(true);
       return;
     }
 
@@ -80,7 +84,7 @@ export default function AdminDashboard() {
     }
 
     setIsInitialized(true);
-  }, [router]);
+  }, []);
 
   const handleLogout = () => {
     // Clear all admin data
@@ -154,7 +158,78 @@ export default function AdminDashboard() {
     }
   };
 
-  if (!isInitialized || !stallData) {
+  if (!isInitialized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  // Show welcome page if not logged in
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 flex items-center justify-center px-4">
+        <div className="text-center max-w-2xl">
+          {/* Icon */}
+          <div className="mb-8 animate-bounce">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-white rounded-3xl shadow-2xl">
+              <Store className="w-12 h-12 text-blue-600" />
+            </div>
+          </div>
+
+          {/* Title */}
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 animate-fade-in-up">
+            Admin Dashboard
+          </h1>
+          <p className="text-xl md:text-2xl text-blue-100 mb-8 animate-fade-in-up animation-delay-200">
+            Kelola stan, menu, dan pesanan dengan mudah
+          </p>
+
+          {/* Features */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 animate-fade-in-up animation-delay-400">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <Store className="w-8 h-8 text-white mx-auto mb-3" />
+              <h3 className="text-white font-semibold mb-2">Kelola Stan</h3>
+              <p className="text-blue-100 text-sm">Atur informasi stan Anda</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <Package className="w-8 h-8 text-white mx-auto mb-3" />
+              <h3 className="text-white font-semibold mb-2">Kelola Menu</h3>
+              <p className="text-blue-100 text-sm">Tambah & edit menu makanan</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+              <UsersIcon className="w-8 h-8 text-white mx-auto mb-3" />
+              <h3 className="text-white font-semibold mb-2">Kelola Siswa</h3>
+              <p className="text-blue-100 text-sm">Manajemen data siswa</p>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-600">
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => router.push('/admin/login')}
+            >
+              <LogOut className="w-5 h-5 mr-2" />
+              Login Admin
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => router.push('/')}
+              className="bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
+              Kembali ke Beranda
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stallData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent"></div>

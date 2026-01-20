@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/Button';
+import { getCurrentUser } from '@/lib/auth';
 import { LogIn, User, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,6 +17,19 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // Check if already logged in
+    const user = getCurrentUser();
+    if (user) {
+      if (user.role === 'student') {
+        router.replace('/');
+      } else if (user.role === 'admin') {
+        alert('Anda sudah login sebagai admin. Silakan logout terlebih dahulu.');
+        router.replace('/admin/dashboard');
+      }
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { menuApiClient } from '@/lib/menu-api';
 import { Button } from '@/components/Button';
+import { getCurrentUser } from '@/lib/auth';
 import { Store, User, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,12 +21,24 @@ export default function AdminLogin() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
+    // Check if already logged in
+    const user = getCurrentUser();
+    if (user) {
+      if (user.role === 'admin') {
+        router.replace('/admin/dashboard');
+      } else if (user.role === 'student') {
+        alert('Anda sudah login sebagai siswa. Silakan logout terlebih dahulu.');
+        router.replace('/');
+      }
+      return;
+    }
+
     // Show success message if just registered
     if (searchParams.get('registered') === 'true') {
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
