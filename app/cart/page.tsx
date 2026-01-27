@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/Button';
-import { apiClient, MenuItem } from '@/lib/api';
+import { MenuItem, apiClient } from '@/lib/api';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from 'lucide-react';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 interface CartItem extends MenuItem {
   quantity: number;
@@ -16,9 +17,9 @@ interface CartItem extends MenuItem {
 export default function CartPage() {
   const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [discountCode, setDiscountCode] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     // Load cart from localStorage
@@ -58,7 +59,8 @@ export default function CartPage() {
     setCartItems(items);
   };
 
-  const updateQuantity = (id: number, change: number) => {
+  const updateQuantity = (id: number | null, change: number) => {
+    if (!id) return;
     const updated = cartItems.map(item =>
       item.id === id
         ? { ...item, quantity: Math.max(1, item.quantity + change) }
@@ -67,7 +69,8 @@ export default function CartPage() {
     saveCart(updated);
   };
 
-  const removeItem = (id: number) => {
+  const removeItem = (id: number | null) => {
+    if (!id) return;
     const updated = cartItems.filter(item => item.id !== id);
     saveCart(updated);
   };
@@ -81,27 +84,27 @@ export default function CartPage() {
   const discountAmount = (subtotal * discount) / 100;
   const total = subtotal - discountAmount;
 
-  const handleCheckout = async () => {
-    // Check if user is logged in
+  // Use original apiClient which works
+  const handleCheckoutDirect = async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      alert('Silakan login terlebih dahulu');
+      toast.error('Silakan login terlebih dahulu');
       router.push('/login');
       return;
     }
 
     if (cartItems.length === 0) {
-      alert('Keranjang kosong');
+      toast.error('Keranjang kosong');
       return;
     }
 
-    setLoading(true);
+    setIsProcessing(true);
     apiClient.setToken(token);
 
     try {
       // Group items by id_stan (stall)
       const groupedByStall = cartItems.reduce((acc, item) => {
-        const stallId = item.id_stan || item.stall_id || 19; // Default stall ID if not set
+        const stallId = item.id_stan || item.stall_id || 19;
         if (!acc[stallId]) {
           acc[stallId] = [];
         }
@@ -112,27 +115,43 @@ export default function CartPage() {
         return acc;
       }, {} as Record<number, Array<{ id_menu: number; qty: number }>>);
 
-      // Create orders for each stall
-      const orderPromises = Object.entries(groupedByStall).map(([stallId, items]) =>
-        apiClient.createOrder({
+      console.log('🛒 Grouped orders:', groupedByStall);
+
+      // Create orders sequentially using proven apiClient
+      for (const [stallId, items] of Object.entries(groupedByStall)) {
+        const orderData = {
           id_stan: parseInt(stallId),
           pesan: items,
-        })
-      );
+        };
 
-      const responses = await Promise.all(orderPromises);
-      console.log('Order responses:', responses);
+        console.log('📤 Creating order:', orderData);
 
-      // Clear cart
+        try {
+          const result = await apiClient.createOrder(orderData);
+          console.log('✅ Order created:', result);
+          toast.success('Pesanan berhasil dibuat!');
+        } catch (error) {
+          console.error('❌ Order failed:', error);
+          throw error;
+        }
+      }
+
+      // Clear cart after successful orders
       clearCart();
+      
+      toast.success('Semua pesanan berhasil!');
+      
+      // Navigate to orders page
+      setTimeout(() => {
+        router.push('/orders');
+      }, 1000);
 
-      alert('Pesanan berhasil dibuat!');
-      router.push('/orders');
     } catch (err) {
       console.error('Checkout error:', err);
-      alert(err instanceof Error ? err.message : 'Gagal membuat pesanan');
+      const errorMsg = err instanceof Error ? err.message : 'Gagal membuat pesanan';
+      toast.error(errorMsg);
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -162,7 +181,7 @@ export default function CartPage() {
                     {/* Image */}
                     <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
                       <Image
-                        src={getImageUrl(item.foto)}
+                        src={getImageUrl(item.foto) || '/placeholder.png'}
                         alt={item.nama}
                         fill
                         className="object-cover"
@@ -258,10 +277,10 @@ export default function CartPage() {
                   variant="primary" 
                   size="lg" 
                   className="w-full mb-3"
-                  onClick={handleCheckout}
-                  disabled={loading}
+                  onClick={handleCheckoutDirect}
+                  disabled={isProcessing}
                 >
-                  {loading ? (
+                  {isProcessing ? (
                     <span className="flex items-center justify-center gap-2">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       Memproses...
