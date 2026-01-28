@@ -157,7 +157,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append('search', search);
 
-    const response = await this.request('/getmenuminuman', {
+    const response = await this.request('/getmenudrink', {
       method: 'POST',
       body: formData,
     });

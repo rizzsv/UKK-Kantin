@@ -6,9 +6,11 @@ import { apiClient } from '@/lib/api';
 import { menuApiClient } from '@/lib/menu-api';
 import { Button } from '@/components/Button';
 import { AuthGuard } from '@/components/AuthGuard';
-import { Store, User, Phone, LogOut, Edit2, Save, X, Package, TrendingUp, Users as UsersIcon } from 'lucide-react';
+import { Store, User, Phone, LogOut, Edit2, Save, X, Package, TrendingUp, Users as UsersIcon, ClipboardList, Tag } from 'lucide-react';
 import { StudentsManagement } from '@/components/admin/StudentsManagement';
 import { MenuManagement } from '@/components/admin/MenuManagement';
+import { OrdersManagement } from '@/components/admin/OrdersManagement';
+import { DiscountManagement } from '@/components/admin/DiscountManagement';
 
 interface StallData {
   id: number;
@@ -18,7 +20,7 @@ interface StallData {
   username: string;
 }
 
-type TabType = 'profile' | 'students' | 'menu';
+type TabType = 'profile' | 'students' | 'menu' | 'orders' | 'discounts';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -47,43 +49,123 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Load stall data from localStorage
-    const storedStallData = localStorage.getItem('stallData');
-    if (storedStallData) {
-      try {
-        const data = JSON.parse(storedStallData);
-        setStallData(data);
-        setEditForm({
-          stan_name: data.stan_name || '',
-          owner_name: data.owner_name || '',
-          phone: data.phone || '',
-          username: data.username || '',
-        });
-      } catch (err) {
-        console.error('Error parsing stall data:', err);
-      }
-    } else {
-      // If no stall data, create empty data to prevent infinite loading
-      setStallData({
-        id: 0,
-        stan_name: 'Stan Baru',
-        owner_name: '',
-        phone: '',
-        username: '',
-      });
-    }
-
-    // Load token
+    // Load token first
     const token = localStorage.getItem('adminAuthToken');
     if (token) {
       apiClient.setToken(token);
-      menuApiClient.setToken(token); // Set token to new menu API client
+      menuApiClient.setToken(token);
       console.log('✅ Admin token loaded to both API clients');
     } else {
       console.warn('⚠️ No admin token found');
+      setIsInitialized(true);
+      return;
     }
 
-    setIsInitialized(true);
+    // Fetch stall profile from API
+    const fetchStallProfile = async () => {
+      // First, try localStorage as immediate fallback
+      const storedStallData = localStorage.getItem('stallData');
+      const adminUsername = localStorage.getItem('adminUsername');
+      
+      // Set default data with username
+      const defaultData = {
+        id: 0,
+        stan_name: '',
+        owner_name: '',
+        phone: '',
+        username: adminUsername || '',
+      };
+      
+      try {
+        const response = await fetch('/api/profilstan', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'makerID': '1',
+          },
+        });
+
+        console.log('📡 Profile API response status:', response.status);
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('📦 Stall profile from API:', result);
+          
+          // Handle multiple possible response structures
+          let stallInfo = result.data || result.stan || result.stall || result;
+          
+          // If stallInfo is an array, take the first element
+          if (Array.isArray(stallInfo)) {
+            stallInfo = stallInfo[0] || {};
+          }
+          
+          console.log('📋 Extracted stallInfo:', stallInfo);
+          
+          // Extract data with comprehensive field mapping
+          const profileData = {
+            id: stallInfo.id || stallInfo.id_stan || 0,
+            stan_name: stallInfo.stan_name || stallInfo.nama_stan || stallInfo.name || '',
+            owner_name: stallInfo.owner_name || stallInfo.pemilik || stallInfo.owner || '',
+            phone: stallInfo.phone || stallInfo.telp || stallInfo.no_telp || '',
+            username: stallInfo.username || stallInfo.user_name || adminUsername || '',
+          };
+          
+          console.log('✅ Profile data extracted:', profileData);
+          
+          // Use API data if valid, otherwise use localStorage or default
+          if (profileData.id || profileData.stan_name || profileData.owner_name) {
+            setStallData(profileData);
+            setEditForm({
+              stan_name: profileData.stan_name,
+              owner_name: profileData.owner_name,
+              phone: profileData.phone,
+              username: profileData.username,
+            });
+            localStorage.setItem('stallData', JSON.stringify(profileData));
+            return; // Success, exit function
+          }
+        }
+        
+        // If we reach here, API didn't return valid data
+        throw new Error(`API response not OK or invalid data (status: ${response.status})`);
+        
+      } catch (error) {
+        console.warn('⚠️ Error fetching stall profile:', error);
+        console.log('🔄 Using fallback data');
+        
+        // Try localStorage first
+        if (storedStallData) {
+          try {
+            const data = JSON.parse(storedStallData);
+            console.log('📦 Loaded from localStorage:', data);
+            setStallData(data);
+            setEditForm({
+              stan_name: data.stan_name || '',
+              owner_name: data.owner_name || '',
+              phone: data.phone || '',
+              username: data.username || adminUsername || '',
+            });
+            return;
+          } catch (parseError) {
+            console.error('❌ Error parsing stored data:', parseError);
+          }
+        }
+        
+        // Use default data if all else fails
+        console.log('💡 Using default profile data with username');
+        setStallData(defaultData);
+        setEditForm({
+          stan_name: '',
+          owner_name: '',
+          phone: '',
+          username: adminUsername || '',
+        });
+      } finally {
+        // Always set initialized to true
+        setIsInitialized(true);
+      }
+    };
+
+    fetchStallProfile();
   }, []);
 
   const handleLogout = () => {
@@ -308,6 +390,24 @@ export default function AdminDashboard() {
               <UsersIcon className="w-4 h-4 mr-2" />
               Siswa
             </Button>
+            <Button
+              onClick={() => setActiveTab('orders')}
+              variant={activeTab === 'orders' ? 'primary' : 'outline'}
+              size="sm"
+              className={activeTab === 'orders' ? '!text-black font-bold' : 'font-semibold'}
+            >
+              <ClipboardList className="w-4 h-4 mr-2" />
+              Pesanan
+            </Button>
+            <Button
+              onClick={() => setActiveTab('discounts')}
+              variant={activeTab === 'discounts' ? 'primary' : 'outline'}
+              size="sm"
+              className={activeTab === 'discounts' ? '!text-black font-bold' : 'font-semibold'}
+            >
+              <Tag className="w-4 h-4 mr-2" />
+              Diskon
+            </Button>
           </div>
 
           {/* Tab Content */}
@@ -356,143 +456,18 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Profil Stan</h2>
-                  <div className="flex gap-2">
-                    {!isEditing ? (
-                      <Button
-                        onClick={handleEditToggle}
-                        variant="outline"
-                        size="sm"
-                        className="!px-4 !py-2 !text-blue-600 font-semibold"
-                      >
-                        <Edit2 className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                    ) : (
-                      <>
-                        <Button
-                          onClick={handleSave}
-                          variant="primary"
-                          size="sm"
-                          className="!px-4 !py-2 !text-black font-bold"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                          ) : (
-                            <Save className="w-4 h-4 mr-2" />
-                          )}
-                          Simpan
-                        </Button>
-                        <Button
-                          onClick={handleEditToggle}
-                          variant="outline"
-                          size="sm"
-                          className="!px-4 !py-2 font-semibold"
-                          disabled={loading}
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          Batal
-                        </Button>
-                      </>
-                    )}
-                  </div>
                 </div>
 
                 <div className="space-y-6">
-                  {/* Stall Name */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Nama Stan
-                    </label>
-                    {isEditing ? (
-                      <div className="relative">
-                        <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          name="stan_name"
-                          value={editForm.stan_name}
-                          onChange={handleInputChange}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <Store className="w-5 h-5 text-gray-400" />
-                        <span className="text-gray-900 font-medium">{stallData.stan_name}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Owner Name */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Nama Pemilik
-                    </label>
-                    {isEditing ? (
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          name="owner_name"
-                          value={editForm.owner_name}
-                          onChange={handleInputChange}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <User className="w-5 h-5 text-gray-400" />
-                        <span className="text-gray-900 font-medium">{stallData.owner_name}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      No. Telepon
-                    </label>
-                    {isEditing ? (
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={editForm.phone}
-                          onChange={handleInputChange}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <Phone className="w-5 h-5 text-gray-400" />
-                        <span className="text-gray-900 font-medium">{stallData.phone}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Username */}
+                  {/* Username - Read Only */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Username
                     </label>
-                    {isEditing ? (
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          name="username"
-                          value={editForm.username}
-                          onChange={handleInputChange}
-                          className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <User className="w-5 h-5 text-gray-400" />
-                        <span className="text-gray-900 font-medium">{stallData.username}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <span className="text-gray-900 font-medium text-lg">{stallData?.username || 'N/A'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -508,6 +483,18 @@ export default function AdminDashboard() {
           {activeTab === 'menu' && (
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <MenuManagement />
+            </div>
+          )}
+
+          {activeTab === 'orders' && (
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <OrdersManagement />
+            </div>
+          )}
+
+          {activeTab === 'discounts' && (
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+              <DiscountManagement />
             </div>
           )}
         </div>

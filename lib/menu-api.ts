@@ -125,7 +125,7 @@ class MenuApiClient {
     const formData = new FormData();
     formData.append('search', search);
     
-    return this.request<MenuItemNew[]>('/getmenuminuman', {
+    return this.request<MenuItemNew[]>('/getmenudrink', {
       method: 'POST',
       body: formData,
     });
@@ -148,15 +148,13 @@ class MenuApiClient {
     id_stan?: number;
   }): Promise<ApiResponse<MenuItemNew>> {
     const formData = new FormData();
-    // Map field names to match API expectations
-    formData.append('food_name', data.nama_makanan);
-    formData.append('price', data.harga.toString());
-    // Map 'makanan' -> 'food', 'minuman' -> 'drink'
-    const typeValue = data.jenis === 'makanan' ? 'food' : 'drink';
-    formData.append('type', typeValue);
-    formData.append('description', data.deskripsi);
+    // Use Indonesian field names as backend expects
+    formData.append('nama_makanan', data.nama_makanan);
+    formData.append('harga', data.harga.toString());
+    formData.append('jenis', data.jenis);
+    formData.append('deskripsi', data.deskripsi);
     if (data.foto) {
-      formData.append('photo', data.foto);
+      formData.append('foto', data.foto);
     }
     if (data.id_stan) {
       formData.append('id_stan', data.id_stan.toString());
@@ -171,7 +169,6 @@ class MenuApiClient {
   }
 
   // POST update menu (updatemenu endpoint)
-  // API expects: food_name, type (food/drink), price, description, photo, maker_id, id_stan
   async updateMenu(
     id: number,
     data: {
@@ -184,16 +181,14 @@ class MenuApiClient {
     }
   ): Promise<ApiResponse<MenuItemNew>> {
     const formData = new FormData();
-    // Map field names to match API expectations - all required fields
-    formData.append('food_name', data.nama_makanan);
-    formData.append('price', data.harga.toString());
-    // Map 'makanan' -> 'food', 'minuman' -> 'drink'
-    const typeValue = data.jenis === 'makanan' ? 'food' : 'drink';
-    formData.append('type', typeValue);
-    formData.append('description', data.deskripsi);
+    // Use Indonesian field names as backend expects
+    formData.append('nama_makanan', data.nama_makanan);
+    formData.append('harga', data.harga.toString());
+    formData.append('jenis', data.jenis);
+    formData.append('deskripsi', data.deskripsi);
     // Photo is optional on update
     if (data.foto) {
-      formData.append('photo', data.foto);
+      formData.append('foto', data.foto);
     }
     // Add maker_id from the client state
     formData.append('maker_id', this.makerID);

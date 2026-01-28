@@ -80,14 +80,56 @@ export default function AdminLogin() {
         localStorage.setItem('isAdminLoggedIn', 'true');
         localStorage.setItem('adminUsername', formData.username);
         
-        // Store stall data from response (from cookie/session)
-        if (response.stan || response.stall) {
-          const stallData = response.stan || response.stall;
+        // Fetch stall profile using the token
+        try {
+          console.log('🔄 Fetching stall profile after login...');
+          const profileResponse = await fetch('/api/profilstan', {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'makerID': '1',
+            },
+          });
+
+          if (profileResponse.ok) {
+            const profileData = await profileResponse.json();
+            console.log('📦 Stall profile fetched:', profileData);
+            
+            // Handle multiple possible response structures
+            let stallInfo = profileData.data || profileData.stan || profileData.stall || profileData;
+            
+            // If stallInfo is an array, take the first element
+            if (Array.isArray(stallInfo)) {
+              stallInfo = stallInfo[0] || {};
+            }
+            
+            const savedData = {
+              id: stallInfo.id || stallInfo.id_stan || 0,
+              stan_name: stallInfo.stan_name || stallInfo.nama_stan || stallInfo.name || '',
+              owner_name: stallInfo.owner_name || stallInfo.pemilik || stallInfo.owner || '',
+              phone: stallInfo.phone || stallInfo.telp || stallInfo.no_telp || '',
+              username: stallInfo.username || formData.username,
+            };
+            
+            console.log('💾 Saving stall data to localStorage:', savedData);
+            localStorage.setItem('stallData', JSON.stringify(savedData));
+          } else {
+            console.warn('⚠️ Failed to fetch stall profile, saving minimal info');
+            localStorage.setItem('stallData', JSON.stringify({
+              id: 0,
+              stan_name: '',
+              owner_name: '',
+              phone: '',
+              username: formData.username,
+            }));
+          }
+        } catch (profileError) {
+          console.error('❌ Error fetching stall profile:', profileError);
+          // Save minimal info on error
           localStorage.setItem('stallData', JSON.stringify({
-            id: stallData.id,
-            stan_name: stallData.stan_name || stallData.nama_stan,
-            owner_name: stallData.owner_name || stallData.pemilik,
-            phone: stallData.phone || stallData.telp,
+            id: 0,
+            stan_name: '',
+            owner_name: '',
+            phone: '',
             username: formData.username,
           }));
         }

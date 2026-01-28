@@ -2,29 +2,42 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { apiClient, Order } from '@/lib/api';
-import { Button } from '@/components/Button';
 import { AuthGuard } from '@/components/AuthGuard';
-import { Package, Clock, CheckCircle, Printer, Calendar } from 'lucide-react';
+import { Package, Clock, CheckCircle, Truck, ChefHat, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/Button';
+
+interface OrderItem {
+  id: number;
+  id_pesanan: number;
+  id_menu: number;
+  qty: number;
+  harga: number;
+  nama_makanan?: string;
+  foto?: string;
+}
+
+interface Order {
+  id: number;
+  id_siswa: number;
+  id_stan: number;
+  status: string; // belum dikonfirm, dimasak, diantar, sampai
+  tanggal: string;
+  total_harga: number;
+  order_items?: OrderItem[];
+  stan_name?: string;
+}
 
 export default function OrdersPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'dikemas' | 'dikirim' | 'selesai'>('all');
 
   useEffect(() => {
-    // Set default month to current month
-    const now = new Date();
-    const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(monthStr);
-    
-    fetchOrders(monthStr);
+    fetchOrders();
   }, []);
 
-  const fetchOrders = async (month: string) => {
+  const fetchOrders = async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
       router.push('/login');
@@ -33,12 +46,25 @@ export default function OrdersPage() {
 
     setLoading(true);
     setError('');
-    apiClient.setToken(token);
 
     try {
-      // Fetch orders by month for student
-      const data = await apiClient.getOrdersByMonthByStudent(month);
-      setOrders(data);
+      const response = await fetch('/api/showorder', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'makerID': '1',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch orders');
+      }
+
+      const data = await response.json();
+      console.log('📋 Orders data:', data);
+      
+      // Handle different response structures
+      const ordersArray = Array.isArray(data) ? data : (data?.data || []);
+      setOrders(ordersArray);
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError(err instanceof Error ? err.message : 'Gagal memuat pesanan');
@@ -47,56 +73,51 @@ export default function OrdersPage() {
     }
   };
 
-  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMonth = e.target.value;
-    setSelectedMonth(newMonth);
-    fetchOrders(newMonth);
-  };
-
-  const handlePrintReceipt = async (orderId: number) => {
-    try {
-      const receipt = await apiClient.printReceipt(orderId);
-      // Open print dialog or download PDF
-      if (receipt.url) {
-        window.open(receipt.url, '_blank');
-      } else {
-        alert('Nota berhasil dicetak!');
-      }
-    } catch (err) {
-      console.error('Print error:', err);
-      alert('Gagal mencetak nota');
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'dikemas':
-        return <Package className="w-5 h-5 text-yellow-600" />;
-      case 'dikirim':
-        return <Clock className="w-5 h-5 text-blue-600" />;
-      case 'selesai':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+  const getStatusInfo = (status: string) => {
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case 'belum dikonfirm':
+      case 'belum dikonfirmasi':
+      case 'not confirmed':
+        return {
+          icon: <AlertCircle className="w-5 h-5" />,
+          color: 'bg-gray-100 text-gray-800 border-gray-200',
+          label: 'Menunggu Konfirmasi',
+          step: 0,
+        };
+      case 'dimasak':
+      case 'cooked':
+        return {
+          icon: <ChefHat className="w-5 h-5" />,
+          color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+          label: 'Sedang Dimasak',
+          step: 1,
+        };
+      case 'diantar':
+      case 'delivered':
+        return {
+          icon: <Truck className="w-5 h-5" />,
+          color: 'bg-blue-100 text-blue-800 border-blue-200',
+          label: 'Sedang Diantar',
+          step: 2,
+        };
+      case 'sampai':
+      case 'arrived':
+        return {
+          icon: <CheckCircle className="w-5 h-5" />,
+          color: 'bg-green-100 text-green-800 border-green-200',
+          label: 'Pesanan Sampai',
+          step: 3,
+        };
       default:
-        return <Package className="w-5 h-5 text-gray-600" />;
+        return {
+          icon: <Package className="w-5 h-5" />,
+          color: 'bg-gray-100 text-gray-800 border-gray-200',
+          label: status,
+          step: 0,
+        };
     }
   };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'dikemas':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'dikirim':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'selesai':
-        return 'bg-green-100 text-green-800 border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const filteredOrders = activeTab === 'all' 
-    ? orders 
-    : orders.filter(order => order.status === activeTab);
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -123,54 +144,16 @@ export default function OrdersPage() {
           <p className="text-xl text-gray-600">Track your order status and history</p>
         </div>
 
-        {/* Month Filter */}
-        <div className="bg-white rounded-2xl shadow-md p-6 mb-8">
-          <div className="flex items-center gap-4">
-            <Calendar className="w-6 h-6 text-blue-600" />
-            <div className="flex-1">
-              <label htmlFor="month" className="block text-sm font-semibold text-gray-700 mb-2">
-                Pilih Bulan
-              </label>
-              <input
-                type="month"
-                id="month"
-                value={selectedMonth}
-                onChange={handleMonthChange}
-                className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Status Tabs */}
-        <div className="flex flex-wrap gap-3 mb-8">
+        {/* Refresh Button */}
+        <div className="flex justify-end mb-6">
           <Button
-            onClick={() => setActiveTab('all')}
-            variant={activeTab === 'all' ? 'primary' : 'outline'}
+            onClick={fetchOrders}
+            variant="outline"
             size="sm"
+            disabled={loading}
           >
-            Semua ({orders.length})
-          </Button>
-          <Button
-            onClick={() => setActiveTab('dikemas')}
-            variant={activeTab === 'dikemas' ? 'primary' : 'outline'}
-            size="sm"
-          >
-            📦 Dikemas ({orders.filter(o => o.status === 'dikemas').length})
-          </Button>
-          <Button
-            onClick={() => setActiveTab('dikirim')}
-            variant={activeTab === 'dikirim' ? 'primary' : 'outline'}
-            size="sm"
-          >
-            🚚 Dikirim ({orders.filter(o => o.status === 'dikirim').length})
-          </Button>
-          <Button
-            onClick={() => setActiveTab('selesai')}
-            variant={activeTab === 'selesai' ? 'primary' : 'outline'}
-            size="sm"
-          >
-            ✅ Selesai ({orders.filter(o => o.status === 'selesai').length})
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
         </div>
 
@@ -184,71 +167,95 @@ export default function OrdersPage() {
             <div className="text-6xl mb-4">⚠️</div>
             <h3 className="text-2xl font-bold text-gray-700 mb-2">Gagal Memuat Pesanan</h3>
             <p className="text-gray-500 mb-6">{error}</p>
-            <Button onClick={() => fetchOrders(selectedMonth)} variant="primary">
+            <Button onClick={fetchOrders} variant="primary">
               Coba Lagi
             </Button>
           </div>
-        ) : filteredOrders.length > 0 ? (
+        ) : orders.length > 0 ? (
           <div className="space-y-4">
-            {filteredOrders.map((order, index) => (
-              <div
-                key={order.id}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-6 animate-fade-in-up"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  {/* Order Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className={`px-4 py-2 rounded-lg border ${getStatusColor(order.status)} font-bold text-sm flex items-center gap-2`}>
-                        {getStatusIcon(order.status)}
-                        {getStatusLabel(order.status)}
-                      </div>
+            {orders.map((order, index) => {
+              const statusInfo = getStatusInfo(order.status);
+              return (
+                <div
+                  key={order.id}
+                  className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-6 animate-fade-in-up"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Order Header */}
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b">
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-600 font-semibold">Order #{order.id}</span>
+                      <span className="text-gray-400 text-sm">
+                        {new Date(order.tanggal).toLocaleDateString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <span className="font-semibold">Order ID:</span>
-                        <span className="font-mono">#{order.id}</span>
-                      </div>
-                      {order.menu && (
-                        <div className="flex items-center gap-2 text-gray-700">
-                          <span className="font-semibold">Menu:</span>
-                          <span>{order.menu.nama}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <span className="font-semibold">Jumlah:</span>
-                        <span>{order.jumlah}x</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <span className="font-semibold">Total:</span>
-                        <span className="text-blue-600 font-bold text-lg">
-                          Rp {order.total_harga.toLocaleString('id-ID')}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-gray-500 text-sm">
-                        <Clock className="w-4 h-4" />
-                        <span>{new Date(order.tanggal).toLocaleString('id-ID')}</span>
-                      </div>
+                    <div className={`px-4 py-2 rounded-lg border ${statusInfo.color} font-semibold text-sm flex items-center gap-2`}>
+                      {statusInfo.icon}
+                      {statusInfo.label}
                     </div>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      onClick={() => handlePrintReceipt(order.id)}
-                      variant="outline"
-                      size="sm"
-                      className="whitespace-nowrap"
-                    >
-                      <Printer className="w-4 h-4 mr-2" />
-                      Cetak Nota
-                    </Button>
+                  {/* Order Progress Bar */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      {['Konfirmasi', 'Dimasak', 'Diantar', 'Sampai'].map((step, idx) => (
+                        <div key={idx} className="flex flex-col items-center flex-1">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
+                            idx <= statusInfo.step
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-400'
+                          }`}>
+                            {idx < statusInfo.step ? '✓' : idx + 1}
+                          </div>
+                          <span className={`text-xs font-medium ${
+                            idx <= statusInfo.step ? 'text-blue-600' : 'text-gray-400'
+                          }`}>
+                            {step}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-500"
+                        style={{ width: `${(statusInfo.step / 3) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Order Items */}
+                  {order.order_items && order.order_items.length > 0 && (
+                    <div className="space-y-3 mb-4">
+                      {order.order_items.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between py-2">
+                          <div className="flex items-center gap-3">
+                            <span className="text-gray-700">{item.nama_makanan || `Menu #${item.id_menu}`}</span>
+                            <span className="text-gray-500">×{item.qty}</span>
+                          </div>
+                          <span className="text-gray-700 font-semibold">
+                            Rp {(item.harga * item.qty).toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between pt-4 border-t">
+                    <span className="text-lg font-bold text-gray-800">Total Pembayaran</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      Rp {order.total_harga.toLocaleString('id-ID')}
+                    </span>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-20">

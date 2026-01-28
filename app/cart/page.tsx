@@ -20,6 +20,7 @@ export default function CartPage() {
   const [discount, setDiscount] = useState(0);
   const [discountCode, setDiscountCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [orderType, setOrderType] = useState<'dine-in' | 'takeaway'>('dine-in');
 
   useEffect(() => {
     // Load cart from localStorage
@@ -239,6 +240,39 @@ export default function CartPage() {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-28">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Order Summary</h2>
+
+                {/* Order Type Selection */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Tipe Pesanan
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setOrderType('dine-in')}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        orderType === 'dine-in'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">🍽️</div>
+                      <div className="font-semibold">Dine In</div>
+                      <div className="text-xs mt-1 opacity-75">Makan di tempat</div>
+                    </button>
+                    <button
+                      onClick={() => setOrderType('takeaway')}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        orderType === 'takeaway'
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">🥡</div>
+                      <div className="font-semibold">Takeaway</div>
+                      <div className="text-xs mt-1 opacity-75">Bawa pulang</div>
+                    </button>
+                  </div>
+                </div>
 
                 {/* Discount Badge */}
                 {discount > 0 && (

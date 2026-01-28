@@ -6,47 +6,38 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
+    
     // Get headers
     const token = request.headers.get("authorization");
     const makerID = request.headers.get("makerID") || "1";
 
-    const params = new URLSearchParams();
-    params.append("id_stan", body.id_stan.toString());
+    console.log("📋 Fetching discounts");
+    console.log("🔍 Search:", body.search || 'No search term');
+    console.log("🔑 Token:", token ? token.substring(0, 20) + '...' : 'No token');
+    console.log("🏪 MakerID:", makerID);
 
-    body.pesan.forEach((item: any, index: number) => {
-      params.append(`pesan[${index}][id_menu]`, item.id_menu.toString());
-      params.append(`pesan[${index}][qty]`, item.qty.toString());
-    });
+    // Create form data for backend API
+    const formData = new FormData();
+    formData.append('search', body.search || '');
 
-    const queryString = params.toString();
-    console.log("📋 Order creation params:", queryString);
-    console.log("🔑 Using token:", token ? token.substring(0, 30) + '...' : 'No token');
-    console.log("🏪 Using makerID:", makerID);
-
-    // Forward to backend API using GET with query parameters
+    // Forward to backend API
     const response = await fetch(
-      `https://ukk-p2.smktelkom-mlg.sch.id/api/pesan?${queryString}`,
+      `https://ukk-p2.smktelkom-mlg.sch.id/api/showdiskon`,
       {
-        method: "GET",
+        method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: token || "",
           makerID: makerID,
         },
+        body: formData,
       },
     );
-
-    console.log("📡 Backend response status:", response.status);
-
-    // Get response text first for logging
-    const responseText = await response.text();
-    console.log("📄 Backend response body:", responseText.substring(0, 500));
 
     // Check if response is JSON
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-      console.error("❌ Backend returned non-JSON:", responseText.substring(0, 200));
+      const text = await response.text();
+      console.error("❌ Backend returned non-JSON:", text.substring(0, 200));
       return NextResponse.json(
         {
           error: "Backend error",
@@ -57,16 +48,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse JSON
-    const data = JSON.parse(responseText);
-    console.log("✅ Backend response:", data);
+    const data = await response.json();
+    console.log("✅ Get discounts response:", data);
+    console.log("📊 Response structure:", {
+      hasData: !!data.data,
+      hasDiskon: !!data.diskon,
+      isArray: Array.isArray(data),
+      keys: Object.keys(data),
+      dataType: typeof data,
+    });
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("❌ Proxy error:", error);
+    console.error("❌ Get discounts proxy error:", error);
     return NextResponse.json(
       {
-        error: "Failed to process order",
+        error: "Failed to fetch discounts",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },

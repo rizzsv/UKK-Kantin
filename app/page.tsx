@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MenuItem, apiClient } from '@/lib/api';
 import { MenuCard } from '@/components/MenuCard';
 import { SearchBar } from '@/components/SearchBar';
@@ -9,13 +9,23 @@ import { Sparkles, UtensilsCrossed, Clock, Star } from 'lucide-react';
 
 export default function Home() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]);
+  const [discountMenus, setDiscountMenus] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'makanan' | 'minuman'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch real data from API
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch real data from API with search support
   useEffect(() => {
     const fetchMenuData = async () => {
       try {
@@ -33,18 +43,30 @@ export default function Home() {
           console.log('⚠️ No token found, attempting to fetch without auth');
         }
 
-        // Fetch both food and beverage menus
-        const [foodResponse, beverageResponse] = await Promise.all([
-          apiClient.getFoodMenu(''),
-          apiClient.getBeverageMenu(''),
-        ]);
+        // Fetch menus based on active category ONLY (no search parameter to backend)
+        // We'll do filtering on the frontend
+        let foodResponse = null;
+        let beverageResponse = null;
+
+        if (activeCategory === 'all' || activeCategory === 'makanan') {
+          foodResponse = await apiClient.getFoodMenu(''); // Empty search - get all
+        }
+        
+        if (activeCategory === 'all' || activeCategory === 'minuman') {
+          beverageResponse = await apiClient.getBeverageMenu(''); // Empty search - get all
+        }
 
         console.log('🍔 Food Response:', foodResponse);
         console.log('🥤 Beverage Response:', beverageResponse);
 
         // Handle API response structure (may have .data wrapper or direct array)
-        const foodData = Array.isArray(foodResponse) ? foodResponse : (foodResponse?.data || []);
-        const beverageData = Array.isArray(beverageResponse) ? beverageResponse : (beverageResponse?.data || []);
+        const foodData = foodResponse ? (Array.isArray(foodResponse) ? foodResponse : (foodResponse?.data || [])) : [];
+        const beverageData = beverageResponse ? (Array.isArray(beverageResponse) ? beverageResponse : (beverageResponse?.data || [])) : [];
+
+        console.log('📊 Processed food data count:', foodData.length);
+        console.log('📊 Processed beverage data count:', beverageData.length);
+        if (foodData.length > 0) console.log('📋 Sample food item:', foodData[0]);
+        if (beverageData.length > 0) console.log('📋 Sample beverage item:', beverageData[0]);
 
         // Combine and format the data with Indonesian field names support
         const combinedMenu: MenuItem[] = [
@@ -77,8 +99,72 @@ export default function Home() {
         ];
 
         console.log('📦 Combined Menu:', combinedMenu);
+        console.log('🔍 Current search query:', debouncedSearchQuery);
+        console.log('📂 Active category:', activeCategory);
         setMenuItems(combinedMenu);
-        setFilteredItems(combinedMenu);
+        
+        // Fetch discount menus (try with or without token)
+        try {
+          console.log('🏷️ Attempting to fetch discount menus...');
+          const headers: any = {
+            'makerID': '1',
+          };
+          
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+          
+          const discountResponse = await fetch('/api/getmenudiskon', {
+            headers: headers,
+          });
+          
+          console.log('🏷️ Discount response status:', discountResponse.status);
+          
+          if (discountResponse.ok) {
+            const discountData = await discountResponse.json();
+            console.log('🏷️ Discount data received:', discountData);
+            console.log('🏷️ Discount data structure:', {
+              hasData: !!discountData?.data,
+              isArray: Array.isArray(discountData?.data),
+              dataLength: discountData?.data?.length || 0,
+            });
+            
+            // Extract active discounts with menus
+            const now = new Date();
+            console.log('📅 Current date:', now.toISOString());
+            
+            const allDiscounts = discountData?.data || [];
+            console.log('📋 Total discounts from API:', allDiscounts.length);
+            
+            const activeDiscounts = allDiscounts.filter((discount: any) => {
+              const start = new Date(discount.tanggal_awal);
+              const end = new Date(discount.tanggal_akhir);
+              const isActive = now >= start && now <= end;
+              const hasMenus = discount.menu_diskon && discount.menu_diskon.length > 0;
+              
+              console.log(`  Discount "${discount.nama_diskon}":`, {
+                start: start.toISOString(),
+                end: end.toISOString(),
+                isActive,
+                menuCount: discount.menu_diskon?.length || 0,
+                hasMenus,
+              });
+              
+              return isActive && hasMenus;
+            });
+            
+            console.log('✅ Active discounts with menus:', activeDiscounts.length);
+            if (activeDiscounts.length > 0) {
+              console.log('📋 Active discount details:', activeDiscounts);
+            }
+            setDiscountMenus(activeDiscounts);
+          } else {
+            console.error('❌ Failed to fetch discount menus:', discountResponse.status);
+          }
+        } catch (discountErr) {
+          console.error('❌ Error fetching discount menus:', discountErr);
+        }
+        // Don't set filteredItems here - let the filtering useEffect handle it
       } catch (err) {
         console.error('Error fetching menu:', err);
         
@@ -120,12 +206,12 @@ export default function Home() {
             },
           ];
           setMenuItems(mockData);
-          setFilteredItems(mockData);
+          // Don't set filteredItems here - let the filtering useEffect handle it
           setError(''); // Clear error, show mock data instead
         } else {
           setError('Gagal memuat menu. Silakan coba lagi.');
           setMenuItems([]);
-          setFilteredItems([]);
+          // filteredItems will be updated by useEffect
         }
       } finally {
         setLoading(false);
@@ -133,24 +219,54 @@ export default function Home() {
     };
 
     fetchMenuData();
-  }, []); // Only fetch once on mount
+  }, [activeCategory]); // Only re-fetch when category changes, NOT when search changes
 
-  // Filter items based on search and category
-  useEffect(() => {
+  // Use useMemo for filtering to ensure it always re-calculates when dependencies change
+  const filteredItems = useMemo(() => {
+    console.log('🔄 useMemo filtering triggered');
+    console.log('   menuItems length:', menuItems.length);
+    console.log('   debouncedSearchQuery:', debouncedSearchQuery);
+
+    // Log all menu items names
+    console.log('   All menu items:', menuItems.map(item => item.nama).join(', '));
+
     let filtered = menuItems;
 
-    if (activeCategory !== 'all') {
-      filtered = filtered.filter((item) => item.kategori === activeCategory);
+    // Apply client-side search filter if search query exists
+    if (debouncedSearchQuery && debouncedSearchQuery.trim() !== '') {
+      const searchTerm = debouncedSearchQuery.toLowerCase().trim();
+
+      filtered = filtered.filter((item) => {
+        const nama = (item.nama || '').toLowerCase();
+        const deskripsi = (item.deskripsi || '').toLowerCase();
+
+        // Simple substring match - check if search term appears anywhere in name or description
+        const matchesName = nama.includes(searchTerm);
+        const matchesDescription = deskripsi.includes(searchTerm);
+
+        console.log(`      Checking "${item.nama}": matches=${matchesName || matchesDescription}`);
+
+        return matchesName || matchesDescription;
+      });
+
+      console.log('🔍 Client-side filtering applied (SUBSTRING MATCH).');
+      console.log('   Search term:', searchTerm);
+      console.log('   Total items before filter:', menuItems.length);
+      console.log('   Results after filter:', filtered.length);
+      console.log('   Filtered item names:', filtered.map(item => item.nama).join(', '));
+
+      if (filtered.length > 0) {
+        console.log('   Sample matched item:', filtered[0].nama);
+      } else {
+        console.log('   ❌ No items matched the search term');
+      }
+    } else {
+      console.log('✅ No search query - showing all items');
     }
 
-    if (searchQuery) {
-      filtered = filtered.filter((item) =>
-        item.nama.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    setFilteredItems(filtered);
-  }, [searchQuery, activeCategory, menuItems]);
+    console.log('📋 Returning filtered items:', filtered.length);
+    return filtered;
+  }, [menuItems, debouncedSearchQuery]);
 
   const handleAddToCart = (item: MenuItem) => {
     // Get current cart from localStorage
@@ -221,16 +337,154 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Discount Menu Section - Only show if there are active discounts */}
+      {discountMenus.length > 0 && !debouncedSearchQuery && (
+        <section className="py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50">
+          <div className="container mx-auto">
+            <div className="text-center mb-10">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full text-sm font-bold mb-4 animate-bounce-slow shadow-lg">
+                <Sparkles className="w-5 h-5" />
+                <span>SPECIAL DISCOUNT!</span>
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-3">
+                Menu <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Diskon Spesial</span>
+              </h2>
+              <p className="text-gray-600 text-lg">Hemat hingga puluhan persen untuk menu pilihan!</p>
+            </div>
+
+            {discountMenus.map((discount, discountIndex) => (
+              <div key={discount.id} className="mb-12">
+                <div className="flex items-center justify-between mb-6 bg-white rounded-2xl p-6 shadow-md">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
+                      <span className="text-3xl font-bold text-white">{discount.persentase_diskon}%</span>
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">{discount.nama_diskon}</h3>
+                      <p className="text-sm text-gray-600">
+                        Berlaku sampai {new Date(discount.tanggal_akhir).toLocaleDateString('id-ID', { 
+                          day: 'numeric', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-gradient-to-r from-orange-100 to-red-100 px-6 py-3 rounded-xl">
+                    <p className="text-sm font-semibold text-orange-800">
+                      {discount.menu_diskon.length} Menu Tersedia
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {discount.menu_diskon.map((menu: any, menuIndex: number) => {
+                    const originalPrice = menu.harga;
+                    const discountedPrice = originalPrice - (originalPrice * discount.persentase_diskon / 100);
+                    
+                    return (
+                      <div
+                        key={`${menu.id}-${menuIndex}`}
+                        className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden animate-fade-in-up relative"
+                        style={{ animationDelay: `${menuIndex * 50}ms` }}
+                      >
+                        {/* Discount Badge */}
+                        <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
+                          -{discount.persentase_diskon}%
+                        </div>
+
+                        <div className="relative h-48 bg-gray-200">
+                          <img
+                            src={`https://ukk-p2.smktelkom-mlg.sch.id/${menu.foto}`}
+                            alt={menu.nama_makanan}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
+                            }}
+                          />
+                        </div>
+
+                        <div className="p-5">
+                          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1">
+                            {menu.nama_makanan}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                            {menu.deskripsi || 'Makanan lezat dan berkualitas'}
+                          </p>
+
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <p className="text-xs text-gray-500 line-through">
+                                Rp {originalPrice.toLocaleString('id-ID')}
+                              </p>
+                              <p className="text-2xl font-bold text-orange-600">
+                                Rp {Math.round(discountedPrice).toLocaleString('id-ID')}
+                              </p>
+                              <p className="text-xs text-green-600 font-semibold">
+                                Hemat Rp {(originalPrice - discountedPrice).toLocaleString('id-ID')}
+                              </p>
+                            </div>
+                          </div>
+
+                          <button
+                            onClick={() => handleAddToCart({
+                              id: menu.id_menu,
+                              nama: menu.nama_makanan,
+                              harga: Math.round(discountedPrice),
+                              deskripsi: menu.deskripsi,
+                              foto: menu.foto,
+                              kategori: menu.jenis as 'makanan' | 'minuman',
+                              id_menu: menu.id_menu,
+                              id_stan: menu.id_stan,
+                              discount_name: discount.nama_diskon,
+                              discount_percentage: discount.persentase_diskon,
+                            })}
+                            className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-bold hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg"
+                          >
+                            + Keranjang
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Menu Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto">
           {/* Search and Filters */}
           <div className="mb-10 space-y-6">
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search for your favorite dish..."
-            />
+            <div className="relative">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search for your favorite dish..."
+              />
+              {searchQuery !== debouncedSearchQuery && (
+                <div className="absolute -bottom-6 left-0 text-xs text-gray-500 flex items-center gap-1">
+                  <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                  <span>Mencari...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Show search results info */}
+            {debouncedSearchQuery && (
+              <div className="text-center">
+                <p className="text-sm text-gray-600">
+                  Menampilkan hasil pencarian untuk: <span className="font-semibold text-blue-600">"{debouncedSearchQuery}"</span>
+                  {filteredItems.length > 0 && (
+                    <span className="ml-2 text-gray-500">({filteredItems.length} item ditemukan)</span>
+                  )}
+                </p>
+              </div>
+            )}
 
             {/* Category Filters */}
             <div className="flex flex-wrap gap-3 justify-center">
@@ -359,15 +613,15 @@ export default function Home() {
 
                 {/* Title */}
                 <h3 className="text-3xl font-bold text-gray-900 mb-3">
-                  {searchQuery ? 'Menu Tidak Ditemukan' : 'Menu Kosong'}
+                  {debouncedSearchQuery ? 'Menu Tidak Ditemukan' : 'Menu Kosong'}
                 </h3>
                 
                 {/* Message */}
                 <p className="text-gray-600 mb-8 text-lg">
-                  {searchQuery 
+                  {debouncedSearchQuery 
                     ? (
                       <>
-                        Tidak ada menu yang cocok dengan <span className="font-bold text-blue-600">"{searchQuery}"</span>
+                        Tidak ada menu yang cocok dengan <span className="font-bold text-blue-600">"{debouncedSearchQuery}"</span>
                         <div className="mt-2 text-sm text-gray-500">Coba kata kunci lain atau pilih kategori berbeda</div>
                       </>
                     )
