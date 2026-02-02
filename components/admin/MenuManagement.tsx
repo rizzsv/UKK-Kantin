@@ -130,13 +130,13 @@ export function MenuManagement() {
 
     // Validation
     if (!formData.nama_makanan.trim() || !formData.harga || !formData.deskripsi.trim()) {
-      showNotification('error', 'Mohon lengkapi semua field yang wajib diisi');
+      showNotification('error', 'Please complete all required fields');
       return;
     }
 
     const harga = parseFloat(formData.harga);
     if (isNaN(harga) || harga <= 0) {
-      showNotification('error', 'Harga harus berupa angka positif');
+      showNotification('error', 'Price must be a positive number');
       return;
     }
 
@@ -155,7 +155,7 @@ export function MenuManagement() {
           id: editingMenu.id,
           data: updateData,
         });
-        showNotification('success', 'Menu berhasil diperbarui! 🎉');
+        showNotification('success', 'Menu successfully updated! 🎉');
       } else {
         // Create new menu
         const createData = {
@@ -166,26 +166,26 @@ export function MenuManagement() {
           foto: formData.foto || undefined,
         };
         await createMenuMutation.mutateAsync(createData);
-        showNotification('success', 'Menu baru berhasil ditambahkan! 🎉');
+        showNotification('success', 'New menu successfully added! 🎉');
       }
 
       setShowAddModal(false);
       resetForm();
     } catch (error) {
       console.error('Error saving menu:', error);
-      showNotification('error', error instanceof Error ? error.message : 'Gagal menyimpan menu');
+      showNotification('error', error instanceof Error ? error.message : 'Failed to save menu');
     }
   };
 
   const handleDelete = async (id: number, nama: string) => {
-    if (!confirm(`Apakah Anda yakin ingin menghapus "${nama}"?`)) return;
+    if (!confirm(`Are you sure you want to delete "${nama}"?`)) return;
 
     try {
       await deleteMenuMutation.mutateAsync(id);
-      showNotification('success', 'Menu berhasil dihapus! 🗑️');
+      showNotification('success', 'Menu successfully deleted! 🗑️');
     } catch (error) {
       console.error('Error deleting menu:', error);
-      showNotification('error', 'Gagal menghapus menu');
+      showNotification('error', 'Failed to delete menu');
     }
   };
 
@@ -202,7 +202,7 @@ export function MenuManagement() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat data menu...</p>
+          <p className="text-gray-600">Loading menu data...</p>
         </div>
       </div>
     );
@@ -214,10 +214,10 @@ export function MenuManagement() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center max-w-md">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Gagal Memuat Data</h3>
-          <p className="text-gray-600 mb-4">{error instanceof Error ? error.message : 'Terjadi kesalahan'}</p>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Failed to Load Data</h3>
+          <p className="text-gray-600 mb-4">{error instanceof Error ? error.message : 'An error occurred'}</p>
           <Button onClick={() => refetch()} variant="primary">
-            Coba Lagi
+            Try Again
           </Button>
         </div>
       </div>
@@ -249,9 +249,9 @@ export function MenuManagement() {
         <div className="flex items-center gap-3">
           <Package className="w-8 h-8 text-blue-600" />
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Manajemen Menu</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Menu Management</h2>
             <p className="text-sm text-gray-600">
-              Kelola menu {activeTab} dengan mudah dan cepat
+              Manage {activeTab} menu easily and quickly
             </p>
           </div>
         </div>
@@ -261,7 +261,7 @@ export function MenuManagement() {
           className="flex items-center gap-2 !text-black"
         >
           <Plus className="w-5 h-5" />
-          Tambah Menu
+          Add Menu
         </Button>
       </div>
 
@@ -273,7 +273,7 @@ export function MenuManagement() {
           size="sm"
           className={activeTab === 'makanan' ? '!text-black' : ''}
         >
-          Makanan ({menus.filter((m) => m.jenis === 'makanan').length})
+          Food ({menus.filter((m) => m.jenis === 'makanan').length})
         </Button>
         <Button
           onClick={() => setActiveTab('minuman')}
@@ -281,7 +281,7 @@ export function MenuManagement() {
           size="sm"
           className={activeTab === 'minuman' ? '!text-black' : ''}
         >
-          Minuman ({menus.filter((m) => m.jenis === 'minuman').length})
+          Beverages ({menus.filter((m) => m.jenis === 'minuman').length})
         </Button>
       </div>
 
@@ -293,7 +293,7 @@ export function MenuManagement() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`Cari ${activeTab}...`}
+            placeholder={`Search ${activeTab}...`}
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
         </div>
@@ -309,17 +309,17 @@ export function MenuManagement() {
         <div className="text-center py-16 bg-gray-50 rounded-lg">
           <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Belum Ada Menu {activeTab}
+            No {activeTab} Menu Yet
           </h3>
           <p className="text-gray-600 mb-4">
             {searchQuery
-              ? 'Tidak ditemukan menu yang sesuai dengan pencarian'
-              : `Tambahkan menu ${activeTab} pertama Anda`}
+              ? 'No menu found matching your search'
+              : `Add your first ${activeTab} menu`}
           </p>
           {!searchQuery && (
             <Button onClick={handleAdd} variant="primary" className="!text-black">
               <Plus className="w-5 h-5 mr-2" />
-              Tambah Menu
+              Add Menu
             </Button>
           )}
         </div>
@@ -412,7 +412,7 @@ export function MenuManagement() {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h3 className="text-xl font-bold text-gray-900">
-                {editingMenu ? 'Edit Menu' : 'Tambah Menu Baru'}
+                {editingMenu ? 'Edit Menu' : 'Add New Menu'}
               </h3>
               <button
                 onClick={closeModal}
@@ -423,10 +423,10 @@ export function MenuManagement() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              {/* Nama Makanan */}
+              {/* Menu Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nama Menu <span className="text-red-500">*</span>
+                  Menu Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -434,7 +434,7 @@ export function MenuManagement() {
                   value={formData.nama_makanan}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                  placeholder="Contoh: Nasi Goreng Spesial"
+                  placeholder="Example: Special Fried Rice"
                   required
                 />
               </div>
@@ -459,7 +459,7 @@ export function MenuManagement() {
               {/* Jenis */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Kategori <span className="text-red-500">*</span>
+                  Category <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="jenis"
@@ -468,15 +468,15 @@ export function MenuManagement() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                   required
                 >
-                  <option value="makanan">Makanan</option>
-                  <option value="minuman">Minuman</option>
+                  <option value="makanan">Food</option>
+                  <option value="minuman">Beverages</option>
                 </select>
               </div>
 
-              {/* Deskripsi */}
+              {/* Description */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Deskripsi <span className="text-red-500">*</span>
+                  Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="deskripsi"
@@ -484,7 +484,7 @@ export function MenuManagement() {
                   onChange={handleInputChange}
                   rows={4}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 resize-none"
-                  placeholder="Deskripsikan menu Anda..."
+                  placeholder="Describe your menu..."
                   required
                 />
               </div>
@@ -492,7 +492,7 @@ export function MenuManagement() {
               {/* Foto */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Foto Menu {!editingMenu && <span className="text-gray-500">(Opsional)</span>}
+                  Menu Photo {!editingMenu && <span className="text-gray-500">(Optional)</span>}
                 </label>
                 <input
                   type="file"
@@ -502,7 +502,7 @@ export function MenuManagement() {
                 />
                 {formData.foto && (
                   <p className="mt-2 text-sm text-green-600">
-                    ✓ File dipilih: {formData.foto.name}
+                    ✓ File selected: {formData.foto.name}
                   </p>
                 )}
               </div>
@@ -517,7 +517,7 @@ export function MenuManagement() {
                   disabled={createMenuMutation.isPending || updateMenuMutation.isPending}
                 >
                   <X className="w-5 h-5 mr-2" />
-                  Batal
+                  Cancel
                 </Button>
                 <Button
                   type="submit"
@@ -528,12 +528,12 @@ export function MenuManagement() {
                   {createMenuMutation.isPending || updateMenuMutation.isPending ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Menyimpan...
+                      Saving...
                     </>
                   ) : (
                     <>
                       <Save className="w-5 h-5 mr-2" />
-                      {editingMenu ? 'Perbarui' : 'Simpan'}
+                      {editingMenu ? 'Update' : 'Save'}
                     </>
                   )}
                 </Button>
@@ -543,7 +543,7 @@ export function MenuManagement() {
         </div>
       )}
 
-      {/* Detail Modal */}
+      {/* View Details Modal */}
       {showDetailModal && selectedMenuDetail && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -587,12 +587,12 @@ export function MenuManagement() {
               </div>
 
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Deskripsi</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
                 <p className="text-gray-600 leading-relaxed">{selectedMenuDetail.deskripsi}</p>
               </div>
 
               <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Informasi Detail</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Detailed Information</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <p className="text-gray-500">ID Menu</p>
@@ -603,7 +603,7 @@ export function MenuManagement() {
                     <p className="font-semibold text-gray-900">#{selectedMenuDetail.id_stan}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Dibuat</p>
+                    <p className="text-gray-500">Created</p>
                     <p className="font-semibold text-gray-900">
                       {selectedMenuDetail.created_at ? new Date(selectedMenuDetail.created_at).toLocaleDateString('id-ID', {
                         year: 'numeric',
@@ -613,7 +613,7 @@ export function MenuManagement() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">Diperbarui</p>
+                    <p className="text-gray-500">Updated</p>
                     <p className="font-semibold text-gray-900">
                       {selectedMenuDetail.updated_at ? new Date(selectedMenuDetail.updated_at).toLocaleDateString('id-ID', {
                         year: 'numeric',
@@ -638,7 +638,7 @@ export function MenuManagement() {
                   Edit Menu
                 </Button>
                 <Button onClick={closeModal} variant="outline" className="flex-1">
-                  Tutup
+                  Close
                 </Button>
               </div>
             </div>

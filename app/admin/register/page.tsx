@@ -34,17 +34,17 @@ export default function AdminRegister() {
 
     // Validation
     if (!formData.stall_name || !formData.owner_name || !formData.phone || !formData.username || !formData.password) {
-      setError('Semua field harus diisi');
+      setError('All fields are required');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Password tidak cocok');
+      setError('Passwords do not match');
       return;
     }
 
     if (formData.password.length < 8) {
-      setError('Password minimal 8 karakter');
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -73,7 +73,7 @@ export default function AdminRegister() {
       router.push('/admin/login?registered=true');
     } catch (err) {
       console.error('Registration error:', err);
-      setError(err instanceof Error ? err.message : 'Gagal mendaftar. Silakan coba lagi.');
+      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -91,8 +91,8 @@ export default function AdminRegister() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-4">
             <Store className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Daftar Stan</h1>
-          <p className="text-gray-600">Buat akun untuk pemilik stan</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Register Stall</h1>
+          <p className="text-gray-600">Create an account for stall owners</p>
         </div>
 
         {/* Form Card */}
@@ -107,7 +107,7 @@ export default function AdminRegister() {
             {/* Stall Name */}
             <div>
               <label htmlFor="stall_name" className="block text-sm font-semibold text-gray-700 mb-2">
-                Nama Stan
+                Stall Name
               </label>
               <div className="relative">
                 <Store className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -118,7 +118,7 @@ export default function AdminRegister() {
                   value={formData.stall_name}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                  placeholder="Contoh: Madura Soup"
+                  placeholder="Example: Madura Soup"
                   required
                 />
               </div>
@@ -127,7 +127,7 @@ export default function AdminRegister() {
             {/* Owner Name */}
             <div>
               <label htmlFor="owner_name" className="block text-sm font-semibold text-gray-700 mb-2">
-                Nama Pemilik
+                Owner Name
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -138,7 +138,7 @@ export default function AdminRegister() {
                   value={formData.owner_name}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                  placeholder="Masukkan nama pemilik"
+                  placeholder="Enter owner name"
                   required
                 />
               </div>
@@ -147,7 +147,7 @@ export default function AdminRegister() {
             {/* Phone */}
             <div>
               <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
-                No. Telepon
+                Phone Number
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -178,7 +178,7 @@ export default function AdminRegister() {
                   value={formData.username}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                  placeholder="Masukkan username"
+                  placeholder="Enter username"
                   required
                 />
               </div>
@@ -198,7 +198,7 @@ export default function AdminRegister() {
                   value={formData.password}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                  placeholder="Minimal 8 karakter"
+                  placeholder="Minimum 8 characters"
                   required
                 />
               </div>
@@ -207,7 +207,7 @@ export default function AdminRegister() {
             {/* Confirm Password */}
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700 mb-2">
-                Konfirmasi Password
+                Confirm Password
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -218,7 +218,7 @@ export default function AdminRegister() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                  placeholder="Ulangi password"
+                  placeholder="Repeat password"
                   required
                 />
               </div>
@@ -234,11 +234,11 @@ export default function AdminRegister() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Mendaftar...
+                  Registering...
                 </span>
               ) : (
                 <span className="flex items-center justify-center gap-2">
-                  Daftar Sekarang
+                  Register Now
                   <ArrowRight className="w-5 h-5" />
                 </span>
               )}
@@ -248,9 +248,9 @@ export default function AdminRegister() {
           {/* Login Link */}
           <div className="text-center pt-4 border-t border-gray-200">
             <p className="text-gray-600 text-sm">
-              Sudah punya akun?{' '}
+              Already have an account?{' '}
               <Link href="/admin/login" className="text-blue-600 hover:text-blue-700 font-semibold">
-                Login di sini
+                Login here
               </Link>
             </p>
           </div>
@@ -259,7 +259,7 @@ export default function AdminRegister() {
         {/* Back to Home */}
         <div className="text-center mt-6">
           <Link href="/" className="text-gray-600 hover:text-gray-800 text-sm font-medium">
-            ← Kembali ke Beranda
+            ← Back to Home
           </Link>
         </div>
       </div>

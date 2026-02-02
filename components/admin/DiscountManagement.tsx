@@ -159,7 +159,7 @@ export function DiscountManagement() {
       const result = await response.json();
       console.log('✅ Discount saved:', result);
 
-      alert(editingDiscount ? 'Diskon berhasil diupdate!' : 'Diskon berhasil ditambahkan!');
+      alert(editingDiscount ? 'Discount successfully updated!' : 'Discount successfully added!');
       handleCloseModal();
       
       // Wait a bit before fetching to ensure backend has processed
@@ -168,7 +168,7 @@ export function DiscountManagement() {
       }, 500);
     } catch (err) {
       console.error('Error saving discount:', err);
-      alert('Gagal menyimpan diskon: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      alert('Failed to save discount: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setSubmitting(false);
     }
@@ -184,10 +184,10 @@ export function DiscountManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">Manajemen Diskon</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Discount Management</h2>
         <Button onClick={() => handleOpenModal()} variant="primary" size="sm">
           <Plus className="w-4 h-4 mr-2" />
-          Tambah Diskon
+          Add Discount
         </Button>
       </div>
 
@@ -198,7 +198,7 @@ export function DiscountManagement() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Cari diskon..."
+          placeholder="Search discounts..."
           className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
         />
       </div>
@@ -214,7 +214,7 @@ export function DiscountManagement() {
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-600">Memuat data diskon...</p>
+          <p className="text-gray-600">Loading discount data...</p>
         </div>
       ) : discounts.length > 0 ? (
         <div className="grid gap-4">
@@ -233,11 +233,11 @@ export function DiscountManagement() {
                       <h3 className="text-xl font-bold text-gray-800">{discount.nama_diskon}</h3>
                       {isActive ? (
                         <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                          Aktif
+                          Active
                         </span>
                       ) : (
                         <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-full">
-                          Tidak Aktif
+                          Inactive
                         </span>
                       )}
                     </div>
@@ -246,19 +246,19 @@ export function DiscountManagement() {
                       <div className="flex items-center gap-2">
                         <Percent className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-700">
-                          <strong>{discount.persentase_diskon}%</strong> diskon
+                          <strong>{discount.persentase_diskon}%</strong> discount
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-600 text-sm">
-                          Mulai: {new Date(discount.tanggal_awal).toLocaleDateString('id-ID')}
+                          Start: {new Date(discount.tanggal_awal).toLocaleDateString('id-ID')}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-gray-400" />
                         <span className="text-gray-600 text-sm">
-                          Sampai: {new Date(discount.tanggal_akhir).toLocaleDateString('id-ID')}
+                          Until: {new Date(discount.tanggal_akhir).toLocaleDateString('id-ID')}
                         </span>
                       </div>
                     </div>
@@ -281,11 +281,11 @@ export function DiscountManagement() {
       ) : (
         <div className="text-center py-20">
           <div className="text-6xl mb-4">🏷️</div>
-          <h3 className="text-xl font-bold text-gray-700 mb-2">Belum Ada Diskon</h3>
-          <p className="text-gray-500 mb-6">Tambahkan diskon pertama Anda untuk menarik lebih banyak pelanggan</p>
+          <h3 className="text-xl font-bold text-gray-700 mb-2">No Discounts Yet</h3>
+          <p className="text-gray-500 mb-6">Add your first discount to attract more customers</p>
           <Button onClick={() => handleOpenModal()} variant="primary">
             <Plus className="w-4 h-4 mr-2" />
-            Tambah Diskon
+            Add Discount
           </Button>
         </div>
       )}
@@ -301,7 +301,7 @@ export function DiscountManagement() {
                     <Tag className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">
-                    {editingDiscount ? 'Edit Diskon' : 'Tambah Diskon Baru'}
+                    {editingDiscount ? 'Edit Discount' : 'Add New Discount'}
                   </h3>
                 </div>
                 <button
@@ -313,10 +313,10 @@ export function DiscountManagement() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Nama Diskon */}
+                {/* Discount Name */}
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-3">
-                    Nama Diskon
+                    Discount Name
                   </label>
                   <div className="relative">
                     <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -325,16 +325,16 @@ export function DiscountManagement() {
                       value={formData.nama_diskon}
                       onChange={(e) => setFormData({ ...formData, nama_diskon: e.target.value })}
                       className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-gray-900 font-medium"
-                      placeholder="Contoh: Diskon Tahun Baru"
+                      placeholder="Example: New Year Discount"
                       required
                     />
                   </div>
                 </div>
 
-                {/* Persentase Diskon */}
+                {/* Discount Percentage */}
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-3">
-                    Persentase Diskon (%)
+                    Discount Percentage (%)
                   </label>
                   <div className="relative">
                     <Percent className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -349,13 +349,13 @@ export function DiscountManagement() {
                       required
                     />
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">Masukkan angka antara 1-100</p>
+                  <p className="mt-2 text-xs text-gray-500">Enter a number between 1-100</p>
                 </div>
 
-                {/* Tanggal Mulai */}
+                {/* Start Date */}
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-3">
-                    Tanggal Mulai
+                    Start Date
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -369,10 +369,10 @@ export function DiscountManagement() {
                   </div>
                 </div>
 
-                {/* Tanggal Selesai */}
+                {/* End Date */}
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-3">
-                    Tanggal Selesai
+                    End Date
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -394,7 +394,7 @@ export function DiscountManagement() {
                     disabled={submitting}
                     className="flex-1 px-6 py-3.5 border-2 border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Batal
+                    Cancel
                   </button>
                   <button
                     type="submit"
@@ -404,11 +404,11 @@ export function DiscountManagement() {
                     {submitting ? (
                       <>
                         <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Menyimpan...
+                        Saving...
                       </>
                     ) : (
                       <>
-                        {editingDiscount ? 'Update Diskon' : 'Tambah Diskon'}
+                        {editingDiscount ? 'Update Discount' : 'Add Discount'}
                       </>
                     )}
                   </button>

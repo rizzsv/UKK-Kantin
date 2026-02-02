@@ -5,16 +5,25 @@ import { MenuItem, apiClient } from '@/lib/api';
 import { MenuCard } from '@/components/MenuCard';
 import { SearchBar } from '@/components/SearchBar';
 import { Button } from '@/components/Button';
-import { Sparkles, UtensilsCrossed, Clock, Star } from 'lucide-react';
+import { Sparkles, UtensilsCrossed, Clock, Star, ShoppingCart, X, Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+interface CartItem extends MenuItem {
+  quantity: number;
+}
 
 export default function Home() {
+  const router = useRouter();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [discountMenus, setDiscountMenus] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'all' | 'makanan' | 'minuman'>('all');
+  const [activeCategory, setActiveCategory] = useState<'all' | 'food' | 'drink'>('food');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showCart, setShowCart] = useState(false);
+  const [ordering, setOrdering] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -35,7 +44,7 @@ export default function Home() {
         // Load token from localStorage if exists
         const token = localStorage.getItem('authToken');
         console.log('🔐 Auth Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'No token found');
-        
+
         if (token) {
           apiClient.setToken(token);
           console.log('✅ Token set to API client');
@@ -43,83 +52,110 @@ export default function Home() {
           console.log('⚠️ No token found, attempting to fetch without auth');
         }
 
-        // Fetch menus based on active category ONLY (no search parameter to backend)
-        // We'll do filtering on the frontend
-        let foodResponse = null;
-        let beverageResponse = null;
+        // Fetch from ONLY ONE endpoint based on activeCategory WITH search query
+        let response = null;
+        let type: 'food' | 'drink' = 'food';
 
-        if (activeCategory === 'all' || activeCategory === 'makanan') {
-          foodResponse = await apiClient.getFoodMenu(''); // Empty search - get all
+        if (activeCategory === 'food') {
+          // Send search query to API for food
+          response = await apiClient.getFoodMenu(debouncedSearchQuery);
+          type = 'food';
+        } else if (activeCategory === 'drink') {
+          // Send search query to API for drinks
+          response = await apiClient.getBeverageMenu(debouncedSearchQuery);
+          type = 'drink';
+        } else if (activeCategory === 'all') {
+          // For 'all', fetch both with search and combine
+          const foodResponse = await apiClient.getFoodMenu(debouncedSearchQuery);
+          const drinkResponse = await apiClient.getBeverageMenu(debouncedSearchQuery);
+          const foodData = foodResponse ? (Array.isArray(foodResponse) ? foodResponse : (foodResponse?.data || [])) : [];
+          const drinkData = drinkResponse ? (Array.isArray(drinkResponse) ? drinkResponse : (drinkResponse?.data || [])) : [];
+
+          const combinedMenu: MenuItem[] = [
+            ...foodData.map((item: any) => ({
+              id: item.id || item.id_menu || item.menu_id,
+              nama: item.nama || item.nama_makanan || item.food_name || '',
+              harga: parseFloat(item.harga || item.price) || 0,
+              deskripsi: item.deskripsi || item.description || '',
+              foto: item.foto || item.photo || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80',
+              type: item.type || 'food',
+              kategori: item.jenis || 'makanan',
+              id_menu: item.id_menu || item.menu_id,
+              id_stan: item.id_stan || item.stall_id,
+              discount_name: item.nama_diskon || item.discount_name,
+              discount_percentage: item.persentase_diskon || item.discount_percentage,
+            })),
+            ...drinkData.map((item: any) => ({
+              id: item.id || item.id_menu || item.menu_id,
+              nama: item.nama || item.nama_makanan || item.food_name || '',
+              harga: parseFloat(item.harga || item.price) || 0,
+              deskripsi: item.deskripsi || item.description || '',
+              foto: item.foto || item.photo || 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
+              type: item.type || 'drink',
+              kategori: item.jenis || 'minuman',
+              id_menu: item.id_menu || item.menu_id,
+              id_stan: item.id_stan || item.stall_id,
+              discount_name: item.nama_diskon || item.discount_name,
+              discount_percentage: item.persentase_diskon || item.discount_percentage,
+            })),
+          ];
+
+          console.log('📦 Combined Menu (all):', combinedMenu);
+          console.log('🔍 Search query used:', debouncedSearchQuery);
+          setMenuItems(combinedMenu);
+          return; // Early return for 'all' case
         }
-        
-        if (activeCategory === 'all' || activeCategory === 'minuman') {
-          beverageResponse = await apiClient.getBeverageMenu(''); // Empty search - get all
-        }
 
-        console.log('🍔 Food Response:', foodResponse);
-        console.log('🥤 Beverage Response:', beverageResponse);
+        console.log(`🍽️ ${type === 'food' ? 'Food' : 'Drink'} Response:`, response);
+        console.log(`🔍 Search query sent to API: "${debouncedSearchQuery}"`);
 
-        // Handle API response structure (may have .data wrapper or direct array)
-        const foodData = foodResponse ? (Array.isArray(foodResponse) ? foodResponse : (foodResponse?.data || [])) : [];
-        const beverageData = beverageResponse ? (Array.isArray(beverageResponse) ? beverageResponse : (beverageResponse?.data || [])) : [];
+        // Handle API response structure
+        const data = response ? (Array.isArray(response) ? response : (response?.data || [])) : [];
 
-        console.log('📊 Processed food data count:', foodData.length);
-        console.log('📊 Processed beverage data count:', beverageData.length);
-        if (foodData.length > 0) console.log('📋 Sample food item:', foodData[0]);
-        if (beverageData.length > 0) console.log('📋 Sample beverage item:', beverageData[0]);
+        console.log(`📊 Processed ${type} data count:`, data.length);
+        if (data.length > 0) console.log('📋 Sample item:', data[0]);
 
-        // Combine and format the data with Indonesian field names support
-        const combinedMenu: MenuItem[] = [
-          ...foodData.map((item: any) => ({
+        // Format the data - use jenis field from API to determine type
+        const menu: MenuItem[] = data.map((item: any) => {
+          const jenis = item.jenis || item.type || type;
+          return {
             id: item.id || item.id_menu || item.menu_id,
             nama: item.nama || item.nama_makanan || item.food_name || '',
             harga: parseFloat(item.harga || item.price) || 0,
             deskripsi: item.deskripsi || item.description || '',
-            foto: item.foto || item.photo || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80',
-            kategori: 'makanan' as const,
+            foto: item.foto || item.photo || (type === 'food' ? 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80' : 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80'),
+            type: jenis === 'makanan' ? 'food' : jenis === 'minuman' ? 'drink' : type,
+            kategori: jenis,
             // Include additional fields
             id_menu: item.id_menu || item.menu_id,
             id_stan: item.id_stan || item.stall_id,
             discount_name: item.nama_diskon || item.discount_name,
             discount_percentage: item.persentase_diskon || item.discount_percentage,
-          })),
-          ...beverageData.map((item: any) => ({
-            id: item.id || item.id_menu || item.menu_id,
-            nama: item.nama || item.nama_makanan || item.food_name || '',
-            harga: parseFloat(item.harga || item.price) || 0,
-            deskripsi: item.deskripsi || item.description || '',
-            foto: item.foto || item.photo || 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
-            kategori: 'minuman' as const,
-            // Include additional fields
-            id_menu: item.id_menu || item.menu_id,
-            id_stan: item.id_stan || item.stall_id,
-            discount_name: item.nama_diskon || item.discount_name,
-            discount_percentage: item.persentase_diskon || item.discount_percentage,
-          })),
-        ];
+          };
+        });
 
-        console.log('📦 Combined Menu:', combinedMenu);
-        console.log('🔍 Current search query:', debouncedSearchQuery);
+        console.log(`📦 ${type} Menu:`, menu);
         console.log('📂 Active category:', activeCategory);
-        setMenuItems(combinedMenu);
-        
+        console.log('✅ Items fetched from API:', menu.length);
+        setMenuItems(menu); // REPLACE, don't append
+
         // Fetch discount menus (try with or without token)
         try {
           console.log('🏷️ Attempting to fetch discount menus...');
           const headers: any = {
             'makerID': '1',
           };
-          
+
           if (token) {
             headers['Authorization'] = `Bearer ${token}`;
           }
-          
+
           const discountResponse = await fetch('/api/getmenudiskon', {
             headers: headers,
           });
-          
+
           console.log('🏷️ Discount response status:', discountResponse.status);
-          
+
           if (discountResponse.ok) {
             const discountData = await discountResponse.json();
             console.log('🏷️ Discount data received:', discountData);
@@ -128,20 +164,20 @@ export default function Home() {
               isArray: Array.isArray(discountData?.data),
               dataLength: discountData?.data?.length || 0,
             });
-            
+
             // Extract active discounts with menus
             const now = new Date();
             console.log('📅 Current date:', now.toISOString());
-            
+
             const allDiscounts = discountData?.data || [];
             console.log('📋 Total discounts from API:', allDiscounts.length);
-            
+
             const activeDiscounts = allDiscounts.filter((discount: any) => {
               const start = new Date(discount.tanggal_awal);
               const end = new Date(discount.tanggal_akhir);
               const isActive = now >= start && now <= end;
               const hasMenus = discount.menu_diskon && discount.menu_diskon.length > 0;
-              
+
               console.log(`  Discount "${discount.nama_diskon}":`, {
                 start: start.toISOString(),
                 end: end.toISOString(),
@@ -149,10 +185,10 @@ export default function Home() {
                 menuCount: discount.menu_diskon?.length || 0,
                 hasMenus,
               });
-              
+
               return isActive && hasMenus;
             });
-            
+
             console.log('✅ Active discounts with menus:', activeDiscounts.length);
             if (activeDiscounts.length > 0) {
               console.log('📋 Active discount details:', activeDiscounts);
@@ -164,10 +200,9 @@ export default function Home() {
         } catch (discountErr) {
           console.error('❌ Error fetching discount menus:', discountErr);
         }
-        // Don't set filteredItems here - let the filtering useEffect handle it
       } catch (err) {
         console.error('Error fetching menu:', err);
-        
+
         // If unauthorized, use mock data as fallback
         if (err instanceof Error && err.message.includes('Unauthorized')) {
           console.warn('⚠️ Using mock data (token expired or not logged in)');
@@ -179,6 +214,7 @@ export default function Home() {
               deskripsi: 'Delicious fried rice with chicken and vegetables',
               foto: 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=500&q=80',
               kategori: 'makanan',
+              type: 'food',
             },
             {
               id: 2,
@@ -187,6 +223,7 @@ export default function Home() {
               deskripsi: 'Traditional chicken noodles with savory broth',
               foto: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=500&q=80',
               kategori: 'makanan',
+              type: 'food',
             },
             {
               id: 3,
@@ -195,6 +232,7 @@ export default function Home() {
               deskripsi: 'Refreshing sweet iced tea',
               foto: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=500&q=80',
               kategori: 'minuman',
+              type: 'drink',
             },
             {
               id: 4,
@@ -203,15 +241,14 @@ export default function Home() {
               deskripsi: 'Fresh orange juice',
               foto: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=500&q=80',
               kategori: 'minuman',
+              type: 'drink',
             },
           ];
           setMenuItems(mockData);
-          // Don't set filteredItems here - let the filtering useEffect handle it
           setError(''); // Clear error, show mock data instead
         } else {
           setError('Gagal memuat menu. Silakan coba lagi.');
           setMenuItems([]);
-          // filteredItems will be updated by useEffect
         }
       } finally {
         setLoading(false);
@@ -219,78 +256,221 @@ export default function Home() {
     };
 
     fetchMenuData();
-  }, [activeCategory]); // Only re-fetch when category changes, NOT when search changes
+  }, [activeCategory, debouncedSearchQuery]); // Re-fetch when category OR search changes
 
-  // Use useMemo for filtering to ensure it always re-calculates when dependencies change
-  const filteredItems = useMemo(() => {
-    console.log('🔄 useMemo filtering triggered');
-    console.log('   menuItems length:', menuItems.length);
-    console.log('   debouncedSearchQuery:', debouncedSearchQuery);
-
-    // Log all menu items names
-    console.log('   All menu items:', menuItems.map(item => item.nama).join(', '));
-
-    let filtered = menuItems;
-
-    // Apply client-side search filter if search query exists
-    if (debouncedSearchQuery && debouncedSearchQuery.trim() !== '') {
-      const searchTerm = debouncedSearchQuery.toLowerCase().trim();
-
-      filtered = filtered.filter((item) => {
-        const nama = (item.nama || '').toLowerCase();
-        const deskripsi = (item.deskripsi || '').toLowerCase();
-
-        // Simple substring match - check if search term appears anywhere in name or description
-        const matchesName = nama.includes(searchTerm);
-        const matchesDescription = deskripsi.includes(searchTerm);
-
-        console.log(`      Checking "${item.nama}": matches=${matchesName || matchesDescription}`);
-
-        return matchesName || matchesDescription;
-      });
-
-      console.log('🔍 Client-side filtering applied (SUBSTRING MATCH).');
-      console.log('   Search term:', searchTerm);
-      console.log('   Total items before filter:', menuItems.length);
-      console.log('   Results after filter:', filtered.length);
-      console.log('   Filtered item names:', filtered.map(item => item.nama).join(', '));
-
-      if (filtered.length > 0) {
-        console.log('   Sample matched item:', filtered[0].nama);
-      } else {
-        console.log('   ❌ No items matched the search term');
-      }
-    } else {
-      console.log('✅ No search query - showing all items');
-    }
-
-    console.log('📋 Returning filtered items:', filtered.length);
-    return filtered;
-  }, [menuItems, debouncedSearchQuery]);
+  // Since we're doing server-side filtering, no need for client-side filtering
+  // Just return the menuItems as-is
+  const filteredItems = menuItems;
 
   const handleAddToCart = (item: MenuItem) => {
-    // Get current cart from localStorage
-    const currentCart = localStorage.getItem('cart');
-    let cart: Array<MenuItem & { quantity: number }> = currentCart ? JSON.parse(currentCart) : [];
+    setCart(prevCart => {
+      const existingItemIndex = prevCart.findIndex(cartItem => cartItem.id === item.id);
 
-    // Check if item already in cart
-    const existingItemIndex = cart.findIndex(cartItem => cartItem.id === item.id);
+      if (existingItemIndex > -1) {
+        // Increase quantity if already in cart
+        const updatedCart = [...prevCart];
+        updatedCart[existingItemIndex].quantity += 1;
+        return updatedCart;
+      } else {
+        // Add new item to cart
+        return [...prevCart, { ...item, quantity: 1 }];
+      }
+    });
+  };
 
-    if (existingItemIndex > -1) {
-      // Increase quantity if already in cart
-      cart[existingItemIndex].quantity += 1;
-      localStorage.setItem('cart', JSON.stringify(cart));
-      alert(`${item.nama} ditambahkan ke keranjang! Jumlah: ${cart[existingItemIndex].quantity}`);
-    } else {
-      // Add new item to cart
-      cart.push({ ...item, quantity: 1 });
-      localStorage.setItem('cart', JSON.stringify(cart));
-      alert(`${item.nama} ditambahkan ke keranjang!`);
+  const handleRemoveFromCart = (itemId: number | null) => {
+    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
+  };
+
+  const handleUpdateQuantity = (itemId: number | null, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      handleRemoveFromCart(itemId);
+      return;
+    }
+
+    setCart(prevCart =>
+      prevCart.map(item =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
+
+  const handlePlaceOrder = async () => {
+    // Check if user is logged in
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      alert('Please login first to place an order!');
+      router.push('/login');
+      return;
+    }
+
+    if (cart.length === 0) {
+      alert('Cart is still empty!');
+      return;
+    }
+
+    // Group items by stall (id_stan)
+    const groupedByStall = cart.reduce((acc, item) => {
+      const stallId = item.id_stan || 0;
+      if (!acc[stallId]) {
+        acc[stallId] = [];
+      }
+      acc[stallId].push({
+        id_menu: item.id_menu || item.id || 0,
+        qty: item.quantity,
+      });
+      return acc;
+    }, {} as Record<number, Array<{ id_menu: number; qty: number }>>);
+
+    setOrdering(true);
+
+    try {
+      // Create orders for each stall
+      const orderPromises = Object.keys(groupedByStall).map(stallId =>
+        apiClient.createOrder({
+          id_stan: parseInt(stallId),
+          pesan: groupedByStall[parseInt(stallId)],
+        })
+      );
+
+      await Promise.all(orderPromises);
+
+      // Clear cart and redirect to orders
+      setCart([]);
+      setShowCart(false);
+      alert('Order successfully placed! Please check your order status.');
+      router.push('/orders');
+    } catch (error) {
+      console.error('Error placing order:', error);
+      alert('Failed to place order. Please try again.');
+    } finally {
+      setOrdering(false);
     }
   };
 
+  const cartTotal = cart.reduce((sum, item) => sum + (item.harga * item.quantity), 0);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100">
+      {/* Floating Cart Button */}
+      {cart.length > 0 && (
+        <button
+          onClick={() => setShowCart(!showCart)}
+          className="fixed bottom-8 right-8 z-50 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 group"
+        >
+          <ShoppingCart className="w-6 h-6" />
+          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full animate-bounce">
+            {cartItemCount}
+          </span>
+        </button>
+      )}
+
+      {/* Cart Sidebar */}
+      {showCart && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowCart(false)}
+          />
+
+          {/* Cart Panel */}
+          <div className="relative w-full max-w-md bg-white shadow-2xl h-full overflow-y-auto animate-slide-in-right">
+            {/* Cart Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Order Cart</h2>
+                <button
+                  onClick={() => setShowCart(false)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-600" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600">{cartItemCount} item{cartItemCount !== 1 ? 's' : ''} in cart</p>
+            </div>
+
+            {/* Cart Items */}
+            <div className="p-6 space-y-4">
+              {cart.map(item => (
+                <div key={item.id} className="bg-gray-50 rounded-xl p-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 mb-1">{item.nama}</h3>
+                      <p className="text-sm text-blue-600 font-bold">
+                        Rp {item.harga.toLocaleString('id-ID')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveFromCart(item.id)}
+                      className="p-1 hover:bg-red-100 rounded transition-colors"
+                    >
+                      <X className="w-5 h-5 text-red-500" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                        className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                        className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="font-bold text-gray-900">
+                      Rp {(item.harga * item.quantity).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Cart Footer */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 space-y-4">
+              <div className="flex items-center justify-between text-lg">
+                <span className="font-semibold text-gray-700">Total:</span>
+                <span className="font-bold text-2xl text-blue-600">
+                  Rp {cartTotal.toLocaleString('id-ID')}
+                </span>
+              </div>
+
+              <Button
+                onClick={handlePlaceOrder}
+                variant="primary"
+                size="lg"
+                disabled={ordering || cart.length === 0}
+                className="w-full"
+              >
+                {ordering ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Processing...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    <Check className="w-5 h-5" />
+                    Place Order
+                  </span>
+                )}
+              </Button>
+
+              <p className="text-xs text-gray-500 text-center">
+                Orders will be grouped by stall
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
         {/* Animated Background Elements */}
@@ -378,15 +558,15 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {discount.menu_diskon.map((menu: any, menuIndex: number) => {
                     const originalPrice = menu.harga;
                     const discountedPrice = originalPrice - (originalPrice * discount.persentase_diskon / 100);
-                    
+
                     return (
                       <div
                         key={`${menu.id}-${menuIndex}`}
-                        className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden animate-fade-in-up relative"
+                        className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden animate-fade-in-up relative flex flex-col h-full"
                         style={{ animationDelay: `${menuIndex * 50}ms` }}
                       >
                         {/* Discount Badge */}
@@ -394,7 +574,7 @@ export default function Home() {
                           -{discount.persentase_diskon}%
                         </div>
 
-                        <div className="relative h-48 bg-gray-200">
+                        <div className="relative h-48 bg-gray-200 flex-shrink-0">
                           <img
                             src={`https://ukk-p2.smktelkom-mlg.sch.id/${menu.foto}`}
                             alt={menu.nama_makanan}
@@ -405,12 +585,12 @@ export default function Home() {
                           />
                         </div>
 
-                        <div className="p-5">
-                          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1">
+                        <div className="p-5 flex flex-col flex-grow">
+                          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
                             {menu.nama_makanan}
                           </h3>
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                            {menu.deskripsi || 'Makanan lezat dan berkualitas'}
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow">
+                            {menu.deskripsi || 'Delicious and quality food'}
                           </p>
 
                           <div className="flex items-center justify-between mb-4">
@@ -422,7 +602,7 @@ export default function Home() {
                                 Rp {Math.round(discountedPrice).toLocaleString('id-ID')}
                               </p>
                               <p className="text-xs text-green-600 font-semibold">
-                                Hemat Rp {(originalPrice - discountedPrice).toLocaleString('id-ID')}
+                                Save Rp {(originalPrice - discountedPrice).toLocaleString('id-ID')}
                               </p>
                             </div>
                           </div>
@@ -442,7 +622,7 @@ export default function Home() {
                             })}
                             className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-bold hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg"
                           >
-                            + Keranjang
+                            + Add to Cart
                           </button>
                         </div>
                       </div>
@@ -469,7 +649,7 @@ export default function Home() {
               {searchQuery !== debouncedSearchQuery && (
                 <div className="absolute -bottom-6 left-0 text-xs text-gray-500 flex items-center gap-1">
                   <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                  <span>Mencari...</span>
+                  <span>Searching...</span>
                 </div>
               )}
             </div>
@@ -478,9 +658,9 @@ export default function Home() {
             {debouncedSearchQuery && (
               <div className="text-center">
                 <p className="text-sm text-gray-600">
-                  Menampilkan hasil pencarian untuk: <span className="font-semibold text-blue-600">"{debouncedSearchQuery}"</span>
+                  Showing search results for: <span className="font-semibold text-blue-600">"{debouncedSearchQuery}"</span>
                   {filteredItems.length > 0 && (
-                    <span className="ml-2 text-gray-500">({filteredItems.length} item ditemukan)</span>
+                    <span className="ml-2 text-gray-500">({filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found)</span>
                   )}
                 </p>
               </div>
@@ -496,18 +676,18 @@ export default function Home() {
                 All Menu
               </Button>
               <Button
-                onClick={() => setActiveCategory('makanan')}
-                variant={activeCategory === 'makanan' ? 'primary' : 'outline'}
+                onClick={() => setActiveCategory('food')}
+                variant={activeCategory === 'food' ? 'primary' : 'outline'}
                 size="sm"
               >
                 🍔 Food
               </Button>
               <Button
-                onClick={() => setActiveCategory('minuman')}
-                variant={activeCategory === 'minuman' ? 'primary' : 'outline'}
+                onClick={() => setActiveCategory('drink')}
+                variant={activeCategory === 'drink' ? 'primary' : 'outline'}
                 size="sm"
               >
-                🥤 Beverages
+                🥤 Drinks
               </Button>
             </div>
           </div>
@@ -521,8 +701,8 @@ export default function Home() {
                 <div className="absolute -top-4 -right-8 text-4xl animate-spin-slow">🍕</div>
                 <div className="absolute -bottom-2 -left-8 text-3xl animate-pulse">🍔</div>
               </div>
-              <p className="text-gray-600 text-lg font-semibold">Memuat menu lezat untuk Anda...</p>
-              <p className="text-gray-500 text-sm mt-2">Tunggu sebentar ya! 😋</p>
+              <p className="text-gray-600 text-lg font-semibold">Loading delicious menus for you...</p>
+              <p className="text-gray-500 text-sm mt-2">Please wait! 😋</p>
             </div>
           ) : error ? (
             <div className="max-w-2xl mx-auto">
@@ -530,7 +710,7 @@ export default function Home() {
                 {/* Background Decoration */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100 rounded-full -mr-16 -mt-16 opacity-50"></div>
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-blue-100 rounded-full -ml-12 -mb-12 opacity-50"></div>
-                
+
                 {/* Animated Food Icons */}
                 <div className="mb-6 relative">
                   <div className="text-8xl animate-wiggle inline-block">😢</div>
@@ -540,12 +720,12 @@ export default function Home() {
 
                 {/* Title */}
                 <h3 className="text-3xl font-bold text-gray-900 mb-3">
-                  Waduh! Menu Lagi Istirahat
+                  Oops! Menu Is On Break
                 </h3>
-                
+
                 {/* Message */}
                 <p className="text-gray-600 mb-2 text-lg">
-                  Menu kami sedang mengalami kendala teknis
+                  Our menu is experiencing technical difficulties
                 </p>
                 <p className="text-gray-500 mb-8 text-sm bg-gray-50 rounded-lg p-3 inline-block">
                   {error}
@@ -553,8 +733,8 @@ export default function Home() {
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button 
-                    onClick={() => window.location.reload()} 
+                  <Button
+                    onClick={() => window.location.reload()}
                     variant="primary"
                     size="lg"
                     className="shadow-lg hover:shadow-xl transition-all hover:scale-105"
@@ -562,22 +742,22 @@ export default function Home() {
                     <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    Coba Lagi
+                    Try Again
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => setError('')}
                     variant="outline"
                     size="lg"
                     className="hover:scale-105 transition-transform"
                   >
-                    Tutup
+                    Close
                   </Button>
                 </div>
 
                 {/* Help Text */}
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <p className="text-sm text-gray-500">
-                    🍴 <span className="font-semibold">Jangan khawatir!</span> Menu akan segera kembali tersedia
+                    🍴 <span className="font-semibold">Don't worry!</span> Menu will be back soon
                   </p>
                 </div>
               </div>
@@ -613,22 +793,22 @@ export default function Home() {
 
                 {/* Title */}
                 <h3 className="text-3xl font-bold text-gray-900 mb-3">
-                  {debouncedSearchQuery ? 'Menu Tidak Ditemukan' : 'Menu Kosong'}
+                  {debouncedSearchQuery ? 'Menu Not Found' : 'Menu Empty'}
                 </h3>
-                
+
                 {/* Message */}
                 <p className="text-gray-600 mb-8 text-lg">
-                  {debouncedSearchQuery 
+                  {debouncedSearchQuery
                     ? (
                       <>
-                        Tidak ada menu yang cocok dengan <span className="font-bold text-blue-600">"{debouncedSearchQuery}"</span>
-                        <div className="mt-2 text-sm text-gray-500">Coba kata kunci lain atau pilih kategori berbeda</div>
+                        No menu matches <span className="font-bold text-blue-600">"{debouncedSearchQuery}"</span>
+                        <div className="mt-2 text-sm text-gray-500">Try different keywords or select another category</div>
                       </>
                     )
                     : (
                       <>
-                        Belum ada {activeCategory === 'makanan' ? '🍔 makanan' : activeCategory === 'minuman' ? '🥤 minuman' : 'menu'} yang tersedia
-                        <div className="mt-2 text-sm text-gray-500">Chef kami sedang menyiapkan menu spesial!</div>
+                        No {activeCategory === 'food' ? '🍔 food' : activeCategory === 'drink' ? '🥤 drinks' : 'menu'} available yet
+                        <div className="mt-2 text-sm text-gray-500">Our chefs are preparing special menus!</div>
                       </>
                     )
                   }
@@ -637,26 +817,26 @@ export default function Home() {
                 {/* Suggestions Box */}
                 <div className="bg-gradient-to-br from-blue-50 to-orange-50 rounded-2xl p-6 mb-8 border border-blue-100">
                   <div className="text-4xl mb-3">💡</div>
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Yang bisa kamu coba:</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-3">What you can try:</p>
                   <ul className="text-sm text-gray-600 space-y-2 text-left max-w-xs mx-auto">
                     <li className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
-                      <span>Ubah kata kunci pencarian</span>
+                      <span>Change search keywords</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
-                      <span>Pilih kategori "All Menu"</span>
+                      <span>Select "All Menu" category</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="text-green-500">✓</span>
-                      <span>Reset semua filter</span>
+                      <span>Reset all filters</span>
                     </li>
                   </ul>
                 </div>
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button 
+                  <Button
                     onClick={() => {
                       setSearchQuery('');
                       setActiveCategory('all');
@@ -667,13 +847,13 @@ export default function Home() {
                   >
                     🔄 Reset Filter
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => window.location.reload()}
                     variant="outline"
                     size="lg"
                     className="hover:scale-105 transition-transform"
                   >
-                    ♻️ Refresh Halaman
+                    ♻️ Refresh Page
                   </Button>
                 </div>
               </div>

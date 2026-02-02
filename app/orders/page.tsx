@@ -5,31 +5,11 @@ import { useRouter } from 'next/navigation';
 import { AuthGuard } from '@/components/AuthGuard';
 import { Package, Clock, CheckCircle, Truck, ChefHat, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/Button';
-
-interface OrderItem {
-  id: number;
-  id_pesanan: number;
-  id_menu: number;
-  qty: number;
-  harga: number;
-  nama_makanan?: string;
-  foto?: string;
-}
-
-interface Order {
-  id: number;
-  id_siswa: number;
-  id_stan: number;
-  status: string; // belum dikonfirm, dimasak, diantar, sampai
-  tanggal: string;
-  total_harga: number;
-  order_items?: OrderItem[];
-  stan_name?: string;
-}
+import { apiClient, OrderResponse } from '@/lib/api';
 
 export default function OrdersPage() {
   const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -44,27 +24,16 @@ export default function OrdersPage() {
       return;
     }
 
+    // Set token to API client
+    apiClient.setToken(token);
+
     setLoading(true);
     setError('');
 
     try {
-      const response = await fetch('/api/showorder', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'makerID': '1',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
-      }
-
-      const data = await response.json();
+      const data = await apiClient.getStudentOrders();
       console.log('📋 Orders data:', data);
-      
-      // Handle different response structures
-      const ordersArray = Array.isArray(data) ? data : (data?.data || []);
-      setOrders(ordersArray);
+      setOrders(data);
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError(err instanceof Error ? err.message : 'Gagal memuat pesanan');
@@ -82,7 +51,7 @@ export default function OrdersPage() {
         return {
           icon: <AlertCircle className="w-5 h-5" />,
           color: 'bg-gray-100 text-gray-800 border-gray-200',
-          label: 'Menunggu Konfirmasi',
+          label: 'Waiting Confirmation',
           step: 0,
         };
       case 'dimasak':
@@ -90,7 +59,7 @@ export default function OrdersPage() {
         return {
           icon: <ChefHat className="w-5 h-5" />,
           color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-          label: 'Sedang Dimasak',
+          label: 'Being Cooked',
           step: 1,
         };
       case 'diantar':
@@ -98,7 +67,7 @@ export default function OrdersPage() {
         return {
           icon: <Truck className="w-5 h-5" />,
           color: 'bg-blue-100 text-blue-800 border-blue-200',
-          label: 'Sedang Diantar',
+          label: 'Being Delivered',
           step: 2,
         };
       case 'sampai':
@@ -106,7 +75,7 @@ export default function OrdersPage() {
         return {
           icon: <CheckCircle className="w-5 h-5" />,
           color: 'bg-green-100 text-green-800 border-green-200',
-          label: 'Pesanan Sampai',
+          label: 'Order Arrived',
           step: 3,
         };
       default:
@@ -165,16 +134,20 @@ export default function OrdersPage() {
         ) : error ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">⚠️</div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">Gagal Memuat Pesanan</h3>
+            <h3 className="text-2xl font-bold text-gray-700 mb-2">Failed to Load Orders</h3>
             <p className="text-gray-500 mb-6">{error}</p>
             <Button onClick={fetchOrders} variant="primary">
-              Coba Lagi
+              Try Again
             </Button>
           </div>
         ) : orders.length > 0 ? (
           <div className="space-y-4">
-            {orders.map((order, index) => {
+            {orders.map((orderResponse, index) => {
+              const order = orderResponse.order;
+              const detail = orderResponse.detail;
               const statusInfo = getStatusInfo(order.status);
+              const totalHarga = detail.reduce((sum, item) => sum + item.harga_beli * item.qty, 0);
+
               return (
                 <div
                   key={order.id}
@@ -190,8 +163,6 @@ export default function OrdersPage() {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
                         })}
                       </span>
                     </div>
@@ -204,7 +175,7 @@ export default function OrdersPage() {
                   {/* Order Progress Bar */}
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
-                      {['Konfirmasi', 'Dimasak', 'Diantar', 'Sampai'].map((step, idx) => (
+                      {['Confirm', 'Cooking', 'Delivering', 'Arrived'].map((step, idx) => (
                         <div key={idx} className="flex flex-col items-center flex-1">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${
                             idx <= statusInfo.step
@@ -230,16 +201,16 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Order Items */}
-                  {order.order_items && order.order_items.length > 0 && (
+                  {detail && detail.length > 0 && (
                     <div className="space-y-3 mb-4">
-                      {order.order_items.map((item) => (
+                      {detail.map((item) => (
                         <div key={item.id} className="flex items-center justify-between py-2">
                           <div className="flex items-center gap-3">
-                            <span className="text-gray-700">{item.nama_makanan || `Menu #${item.id_menu}`}</span>
+                            <span className="text-gray-700">Menu #{item.id_menu}</span>
                             <span className="text-gray-500">×{item.qty}</span>
                           </div>
                           <span className="text-gray-700 font-semibold">
-                            Rp {(item.harga * item.qty).toLocaleString('id-ID')}
+                            Rp {(item.harga_beli * item.qty).toLocaleString('id-ID')}
                           </span>
                         </div>
                       ))}
@@ -248,9 +219,9 @@ export default function OrdersPage() {
 
                   {/* Total */}
                   <div className="flex items-center justify-between pt-4 border-t">
-                    <span className="text-lg font-bold text-gray-800">Total Pembayaran</span>
+                    <span className="text-lg font-bold text-gray-800">Total Payment</span>
                     <span className="text-2xl font-bold text-blue-600">
-                      Rp {order.total_harga.toLocaleString('id-ID')}
+                      Rp {totalHarga.toLocaleString('id-ID')}
                     </span>
                   </div>
                 </div>
@@ -260,11 +231,11 @@ export default function OrdersPage() {
         ) : (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">📦</div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">Belum Ada Pesanan</h3>
-            <p className="text-gray-500 mb-8">Mulai pesan menu favorit Anda!</p>
+            <h3 className="text-2xl font-bold text-gray-700 mb-2">No Orders Yet</h3>
+            <p className="text-gray-500 mb-8">Start ordering your favorite menu!</p>
             <Button variant="primary" size="lg" onClick={() => router.push('/')}>
               <Package className="w-5 h-5 mr-2" />
-              Lihat Menu
+              View Menu
             </Button>
           </div>
         )}

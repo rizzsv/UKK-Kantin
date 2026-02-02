@@ -6,12 +6,12 @@ export interface MenuItem {
   harga: number;
   deskripsi: string;
   foto: string;
-  kategori: 'makanan' | 'minuman';
+  type: 'food' | 'drink'; // Required field from API
+  kategori?: 'makanan' | 'minuman'; // Optional - legacy field
   stok?: number;
   // New fields from API response
   food_name?: string;
   price?: number;
-  type?: 'food' | 'drink';
   photo?: string;
   description?: string;
   id_stan?: number;
@@ -42,13 +42,39 @@ export interface Order {
   menu_id: number;
   jumlah: number;
   total_harga: number;
-  status: 'dikemas' | 'dikirim' | 'selesai';
+  status: 'dikemas' | 'dikirim' | 'selesai' | 'belum dikonfirm' | 'dimasak' | 'diantar' | 'sampai';
   tanggal: string;
   siswa?: {
     nama_siswa: string;
     kelas: string;
   };
   menu?: MenuItem;
+}
+
+export interface OrderDetail {
+  id: number;
+  id_transaksi: number;
+  id_menu: number;
+  qty: number;
+  harga_beli: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderInfo {
+  id: number;
+  tanggal: string;
+  id_siswa: number;
+  id_stan: number;
+  status: string;
+  maker_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderResponse {
+  order: OrderInfo;
+  detail: OrderDetail[];
 }
 
 export interface Student {
@@ -234,18 +260,48 @@ class ApiClient {
       id_menu: number;
       qty: number;
     }>;
-  }): Promise<any> {
-    return this.request('/pesan', {
+  }): Promise<OrderResponse> {
+    const response = await this.request('/pesan', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
     });
+
+    // Handle response structure
+    if (response && response.status && response.data) {
+      return response.data;
+    }
+    return response;
   }
 
-  async getOrdersByStatus(status: string = 'dimasak'): Promise<Order[]> {
-    return this.request(`/showorder/${status}`);
+  async getOrdersByStatus(status: string = 'dimasak'): Promise<OrderResponse[]> {
+    const response = await this.request(`/showorder/${status}`);
+
+    // Handle response structure
+    if (response && response.status && response.data) {
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      // If single object, wrap in array
+      return [response.data];
+    }
+    return [];
+  }
+
+  async getStudentOrders(): Promise<OrderResponse[]> {
+    const response = await this.request('/showorder/dimasak');
+
+    // Handle response structure
+    if (response && response.status && response.data) {
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      // If single object, wrap in array
+      return [response.data];
+    }
+    return [];
   }
 
   async getOrdersByMonthByStudent(date: string): Promise<Order[]> {
@@ -491,6 +547,17 @@ class ApiClient {
 
   async getMonthlyRevenue(date: string): Promise<any> {
     return this.request(`/rekappemasukan/${date}`);
+  }
+
+  // Admin Stan Order Management
+  async getOrdersByStatusForStan(status: string): Promise<any> {
+    // Endpoint: /getorder_dimasak, /getorder_belum dikonfirm, /getorder_diantar, /getorder_sampai
+    return this.request(`/getorder_${status}`);
+  }
+
+  async getMonthlyRevenueByStan(date: string): Promise<any> {
+    // Endpoint: /showpemasukanbybulan/2025-01-01
+    return this.request(`/showpemasukanbybulan/${date}`);
   }
 }
 

@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, User, UtensilsCrossed, ChevronDown, UserCircle, Shield } from 'lucide-react';
+import { User, UtensilsCrossed, ChevronDown, UserCircle, Shield } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { getCurrentUser, logout } from '@/lib/auth';
 
 export function Navbar() {
-  const [cartCount, setCartCount] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -33,34 +32,19 @@ export function Navbar() {
     };
 
     checkLoginStatus();
-    
-    // Update cart count
-    const updateCart = () => {
-      const cart = localStorage.getItem('cart');
-      if (cart) {
-        const items = JSON.parse(cart);
-        setCartCount(items.length);
-      }
-    };
-    
-    updateCart();
-    
+
     // Listen for storage changes (for cross-tab updates)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'isLoggedIn' || e.key === 'username' || e.key === 'userData') {
         checkLoginStatus();
       }
-      if (e.key === 'cart') {
-        updateCart();
-      }
     };
-    
+
     // Listen for custom storage event (for same-tab updates)
     const handleCustomStorageEvent = () => {
       checkLoginStatus();
-      updateCart();
     };
-    
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('storage', handleCustomStorageEvent);
     
@@ -123,18 +107,6 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center space-x-4">
-            {/* Cart */}
-            <Link href="/cart" className="relative group">
-              <div className="p-3 hover:bg-gray-100 rounded-full transition-colors duration-200">
-                <ShoppingCart className="w-6 h-6 text-gray-700 group-hover:text-blue-600 transition-colors" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
-                    {cartCount}
-                  </span>
-                )}
-              </div>
-            </Link>
-
             {/* User Profile with Dropdown */}
             <div className="relative" ref={profileMenuRef}>
               <button
@@ -152,9 +124,9 @@ export function Navbar() {
                     <>
                       {/* Logged In Menu */}
                       <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-700">Halo, {username}! 👋</p>
+                        <p className="text-sm font-semibold text-gray-700">Hello, {username}! 👋</p>
                       </div>
-                      
+
                       <Link
                         href={localStorage.getItem('isAdminLoggedIn') === 'true' ? '/admin/dashboard' : '/profile'}
                         onClick={() => setShowProfileMenu(false)}
@@ -180,9 +152,9 @@ export function Navbar() {
                     <>
                       {/* Not Logged In Menu */}
                       <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="text-sm font-semibold text-gray-700">Pilih Role Login</p>
+                        <p className="text-sm font-semibold text-gray-700">Choose Login Role</p>
                       </div>
-                      
+
                       {/* Student/User Login */}
                       <Link
                         href="/login"
@@ -193,8 +165,8 @@ export function Navbar() {
                           <UserCircle className="w-6 h-6 text-blue-600" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-800">Siswa / User</p>
-                          <p className="text-xs text-gray-500">Login untuk memesan</p>
+                          <p className="font-semibold text-gray-800">Student / User</p>
+                          <p className="text-xs text-gray-500">Login to order</p>
                         </div>
                       </Link>
 
@@ -208,8 +180,8 @@ export function Navbar() {
                           <Shield className="w-6 h-6 text-purple-600" />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-800">Admin Stan</p>
-                          <p className="text-xs text-gray-500">Kelola stan & menu</p>
+                          <p className="font-semibold text-gray-800">Stall Admin</p>
+                          <p className="text-xs text-gray-500">Manage stall & menu</p>
                         </div>
                       </Link>
                     </>

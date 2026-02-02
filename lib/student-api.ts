@@ -3,11 +3,11 @@ const BASE_URL = '/api'; // Proxy to https://ukk-p2.smktelkom-mlg.sch.id/api
 
 export interface Student {
   id: number;
-  student_name: string;
-  address: string;
-  phone: string;
-  photo: string | null;
-  user_id: number;
+  nama_siswa: string;
+  alamat: string;
+  telp: string;
+  foto: string | null;
+  id_user: number;
   maker_id: number;
   username: string;
   role: string;
@@ -16,7 +16,7 @@ export interface Student {
 }
 
 export interface ApiResponse<T> {
-  status: boolean | string;
+  status: boolean;
   message: string;
   data: T;
 }
@@ -27,16 +27,6 @@ class StudentApiClient {
 
   setToken(token: string) {
     this.token = token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token);
-    }
-  }
-
-  getToken(): string {
-    if (!this.token && typeof window !== 'undefined') {
-      this.token = localStorage.getItem('authToken') || '';
-    }
-    return this.token;
   }
 
   setMakerID(makerID: string) {
@@ -45,13 +35,11 @@ class StudentApiClient {
 
   private getHeaders(): HeadersInit {
     const headers: HeadersInit = {
-      makerID: this.makerID,
+      'makerID': this.makerID,
     };
 
-    // Always try to get the latest token
-    const token = this.getToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
     }
 
     return headers;
@@ -85,37 +73,46 @@ class StudentApiClient {
     }
   }
 
-  // POST get all students (correct endpoint: /get_all_siswa)
+  // GET all students (endpoint: POST /get_siswa with empty search)
   async getAllStudents(): Promise<ApiResponse<Student[]>> {
     const formData = new FormData();
     formData.append('search', ''); // Empty search to get all students
-    
-    return this.request<Student[]>('/get_all_siswa', {
+
+    return this.request<Student[]>('/get_siswa', {
       method: 'POST',
       body: formData,
     });
   }
 
-  // POST create new student (endpoint: /tambah_siswa with correct field names)
+  // POST search students (endpoint: POST /get_siswa with search body)
+  async searchStudents(search: string): Promise<ApiResponse<Student[]>> {
+    const formData = new FormData();
+    formData.append('search', search);
+
+    return this.request<Student[]>('/get_siswa', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  // POST create new student (endpoint: POST /tambah_siswa)
   async createStudent(data: {
-    student_name: string;
-    address: string;
-    phone: string;
+    nama_siswa: string;
+    alamat: string;
+    telp: string;
     username: string;
     password: string;
-    photo?: File;
+    foto?: File;
   }): Promise<ApiResponse<Student>> {
     const formData = new FormData();
-    // Map to backend expected field names
-    formData.append('nama_siswa', data.student_name);
-    formData.append('alamat', data.address);
-    formData.append('telp', data.phone);
+    formData.append('nama_siswa', data.nama_siswa);
+    formData.append('alamat', data.alamat);
+    formData.append('telp', data.telp);
     formData.append('username', data.username);
     formData.append('password', data.password);
-    if (data.photo) {
-      formData.append('photo', data.photo);
+    if (data.foto) {
+      formData.append('foto', data.foto);
     }
-    formData.append('maker_id', this.makerID);
 
     return this.request<Student>('/tambah_siswa', {
       method: 'POST',
@@ -123,7 +120,33 @@ class StudentApiClient {
     });
   }
 
-  // DELETE student (correct endpoint: /delete_siswa)
+  // POST update student (endpoint: POST /ubah_siswa/:id)
+  async updateStudent(
+    id: number,
+    data: {
+      nama_siswa: string;
+      alamat: string;
+      telp: string;
+      username: string;
+      foto?: File;
+    }
+  ): Promise<ApiResponse<Student>> {
+    const formData = new FormData();
+    formData.append('nama_siswa', data.nama_siswa);
+    formData.append('alamat', data.alamat);
+    formData.append('telp', data.telp);
+    formData.append('username', data.username);
+    if (data.foto) {
+      formData.append('foto', data.foto);
+    }
+
+    return this.request<Student>(`/ubah_siswa/${id}`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  // DELETE student (endpoint: DELETE /delete_siswa/:id)
   async deleteStudent(id: number): Promise<ApiResponse<any>> {
     return this.request<any>(`/delete_siswa/${id}`, {
       method: 'DELETE',

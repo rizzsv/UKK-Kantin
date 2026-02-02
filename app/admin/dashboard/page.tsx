@@ -228,13 +228,13 @@ export default function AdminDashboard() {
       setStallData(updatedData);
       localStorage.setItem('stallData', JSON.stringify(updatedData));
 
-      setSuccess('Profil berhasil diperbarui!');
+      setSuccess('Profile successfully updated!');
       setIsEditing(false);
-      
+
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Update error:', err);
-      setError(err instanceof Error ? err.message : 'Gagal memperbarui profil');
+      setError(err instanceof Error ? err.message : 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -265,25 +265,25 @@ export default function AdminDashboard() {
             Admin Dashboard
           </h1>
           <p className="text-xl md:text-2xl text-blue-100 mb-8 animate-fade-in-up animation-delay-200">
-            Kelola stan, menu, dan pesanan dengan mudah
+            Manage stall, menu, and orders with ease
           </p>
 
           {/* Features */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12 animate-fade-in-up animation-delay-400">
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
               <Store className="w-8 h-8 text-white mx-auto mb-3" />
-              <h3 className="text-white font-semibold mb-2">Kelola Stan</h3>
-              <p className="text-blue-100 text-sm">Atur informasi stan Anda</p>
+              <h3 className="text-white font-semibold mb-2">Manage Stall</h3>
+              <p className="text-blue-100 text-sm">Set up your stall information</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
               <Package className="w-8 h-8 text-white mx-auto mb-3" />
-              <h3 className="text-white font-semibold mb-2">Kelola Menu</h3>
-              <p className="text-blue-100 text-sm">Tambah & edit menu makanan</p>
+              <h3 className="text-white font-semibold mb-2">Manage Menu</h3>
+              <p className="text-blue-100 text-sm">Add & edit food menu</p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
               <UsersIcon className="w-8 h-8 text-white mx-auto mb-3" />
-              <h3 className="text-white font-semibold mb-2">Kelola Siswa</h3>
-              <p className="text-blue-100 text-sm">Manajemen data siswa</p>
+              <h3 className="text-white font-semibold mb-2">Manage Students</h3>
+              <p className="text-blue-100 text-sm">Student data management</p>
             </div>
           </div>
 
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
               onClick={() => router.push('/')}
               className="bg-white/10 border-white/30 text-white hover:bg-white/20"
             >
-              Kembali ke Beranda
+              Back to Home
             </Button>
           </div>
         </div>
@@ -336,7 +336,7 @@ export default function AdminDashboard() {
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900">Dashboard Admin</h1>
               </div>
-              <p className="text-gray-600">Kelola stan, menu, dan siswa</p>
+              <p className="text-gray-600">Manage stall, menu, and students</p>
             </div>
             <Button
               onClick={handleLogout}
@@ -370,7 +370,7 @@ export default function AdminDashboard() {
               className={activeTab === 'profile' ? '!text-black font-bold' : 'font-semibold'}
             >
               <Store className="w-4 h-4 mr-2" />
-              Profil Stan
+              Stall Profile
             </Button>
             <Button
               onClick={() => setActiveTab('menu')}
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
               className={activeTab === 'students' ? '!text-black font-bold' : 'font-semibold'}
             >
               <UsersIcon className="w-4 h-4 mr-2" />
-              Siswa
+              Students
             </Button>
             <Button
               onClick={() => setActiveTab('orders')}
@@ -397,7 +397,7 @@ export default function AdminDashboard() {
               className={activeTab === 'orders' ? '!text-black font-bold' : 'font-semibold'}
             >
               <ClipboardList className="w-4 h-4 mr-2" />
-              Pesanan
+              Orders
             </Button>
             <Button
               onClick={() => setActiveTab('discounts')}
@@ -406,7 +406,7 @@ export default function AdminDashboard() {
               className={activeTab === 'discounts' ? '!text-black font-bold' : 'font-semibold'}
             >
               <Tag className="w-4 h-4 mr-2" />
-              Diskon
+              Discounts
             </Button>
           </div>
 
@@ -430,7 +430,7 @@ export default function AdminDashboard() {
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-600 text-sm mb-1">Pesanan Hari Ini</p>
+                      <p className="text-gray-600 text-sm mb-1">Today's Orders</p>
                       <p className="text-3xl font-bold text-gray-900">0</p>
                     </div>
                     <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -455,7 +455,7 @@ export default function AdminDashboard() {
               {/* Profile Card */}
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Profil Stan</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Stall Profile</h2>
                 </div>
 
                 <div className="space-y-6">

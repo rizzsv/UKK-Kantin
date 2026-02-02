@@ -6,9 +6,11 @@ import { Footer } from './Footer';
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
-  // Check if current path is admin route
-  const isAdminRoute = pathname?.startsWith('/admin');
+
+  // Check if current path is admin route (excluding login and register pages)
+  const isAdminRoute = pathname?.startsWith('/admin') &&
+    !pathname?.startsWith('/admin/login') &&
+    !pathname?.startsWith('/admin/register');
 
   if (isAdminRoute) {
     // Admin routes: no navbar/footer
