@@ -2,7 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/Button';
-import { Plus, Pencil, Trash2, Tag, Percent, Calendar, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag, Percent, Calendar, Search, X, Utensils, Check } from 'lucide-react';
+
+interface MenuDiscount {
+  id: number;
+  id_menu: number;
+  id_diskon: number;
+  maker_id: number;
+  created_at: string;
+  updated_at: string;
+  nama_makanan: string;
+  harga: number;
+  jenis: string;
+  foto: string;
+  deskripsi: string;
+  id_stan: number;
+}
 
 interface Discount {
   id: number;
@@ -10,6 +25,17 @@ interface Discount {
   persentase_diskon: number;
   tanggal_awal: string;
   tanggal_akhir: string;
+  id_stan: number;
+  menu_diskon?: MenuDiscount[];
+}
+
+interface MenuItem {
+  id: number;
+  nama_makanan: string;
+  harga: number;
+  jenis: string;
+  foto: string;
+  deskripsi: string;
   id_stan: number;
 }
 
@@ -19,7 +45,9 @@ export function DiscountManagement() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
   const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
+  const [selectedDiscountForMenus, setSelectedDiscountForMenus] = useState<Discount | null>(null);
   const [formData, setFormData] = useState({
     nama_diskon: '',
     persentase_diskon: '',
@@ -27,6 +55,9 @@ export function DiscountManagement() {
     tanggal_akhir: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [menusLoading, setMenusLoading] = useState(false);
+  const [addingMenuDiscounts, setAddingMenuDiscounts] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchDiscounts();
@@ -44,7 +75,8 @@ export function DiscountManagement() {
     }
 
     try {
-      const response = await fetch('/api/discount/list', {
+      // Fetch discounts with menu discounts
+      const response = await fetch('/api/getmenudiskon', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,33 +91,68 @@ export function DiscountManagement() {
       }
 
       const data = await response.json();
-      console.log('📋 Discounts data:', data);
-      console.log('📊 Data structure:', {
-        isArray: Array.isArray(data),
-        hasData: !!data?.data,
-        hasDiskon: !!data?.diskon,
-        keys: Object.keys(data),
-      });
-      
-      // Handle multiple possible response structures
+      console.log('📋 Menu discounts data:', data);
+
+      // Handle response structure
       let discountsArray = [];
-      if (Array.isArray(data)) {
+      if (data?.data && Array.isArray(data.data)) {
+        discountsArray = data.data;
+      } else if (Array.isArray(data)) {
         discountsArray = data;
-      } else if (data?.data) {
-        discountsArray = Array.isArray(data.data) ? data.data : [data.data];
-      } else if (data?.diskon) {
-        discountsArray = Array.isArray(data.diskon) ? data.diskon : [data.diskon];
       }
-      
+
       console.log('✅ Parsed discounts array:', discountsArray);
-      console.log('📝 Total discounts:', discountsArray.length);
-      
       setDiscounts(discountsArray);
     } catch (err) {
       console.error('Error fetching discounts:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch discounts');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMenus = async () => {
+    setMenusLoading(true);
+    const token = localStorage.getItem('adminAuthToken');
+    if (!token) {
+      setMenusLoading(false);
+      return;
+    }
+
+    try {
+      // Fetch all menus (food and drinks)
+      const [foodResponse, drinkResponse] = await Promise.all([
+        fetch('/api/getmenufood', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'makerID': '1',
+          },
+          body: JSON.stringify({ search: '' }),
+        }),
+        fetch('/api/getmenudrink', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'makerID': '1',
+          },
+          body: JSON.stringify({ search: '' }),
+        }),
+      ]);
+
+      const foodData = await foodResponse.json();
+      const drinkData = await drinkResponse.json();
+
+      const foodMenus = foodData?.data || [];
+      const drinkMenus = drinkData?.data || [];
+
+      setMenus([...foodMenus, ...drinkMenus]);
+    } catch (err) {
+      console.error('Error fetching menus:', err);
+    } finally {
+      setMenusLoading(false);
     }
   };
 
@@ -110,6 +177,12 @@ export function DiscountManagement() {
     setShowModal(true);
   };
 
+  const handleOpenMenuModal = async (discount: Discount) => {
+    setSelectedDiscountForMenus(discount);
+    setShowMenuModal(true);
+    await fetchMenus();
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingDiscount(null);
@@ -119,6 +192,12 @@ export function DiscountManagement() {
       tanggal_awal: '',
       tanggal_akhir: '',
     });
+  };
+
+  const handleCloseMenuModal = () => {
+    setShowMenuModal(false);
+    setSelectedDiscountForMenus(null);
+    setMenus([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,8 +240,7 @@ export function DiscountManagement() {
 
       alert(editingDiscount ? 'Discount successfully updated!' : 'Discount successfully added!');
       handleCloseModal();
-      
-      // Wait a bit before fetching to ensure backend has processed
+
       setTimeout(() => {
         fetchDiscounts();
       }, 500);
@@ -172,6 +250,60 @@ export function DiscountManagement() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAddMenuToDiscount = async (menuId: number) => {
+    if (!selectedDiscountForMenus) return;
+
+    const token = localStorage.getItem('adminAuthToken');
+    if (!token) {
+      alert('Please login as admin');
+      return;
+    }
+
+    setAddingMenuDiscounts(prev => new Set(prev).add(menuId));
+
+    try {
+      const response = await fetch('/api/insert_menu_diskon', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'makerID': '1',
+        },
+        body: JSON.stringify({
+          id_diskon: selectedDiscountForMenus.id,
+          id_menu: menuId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add menu to discount');
+      }
+
+      const result = await response.json();
+      console.log('✅ Menu added to discount:', result);
+
+      alert('Menu successfully added to discount!');
+
+      // Refresh discounts and menus
+      await fetchDiscounts();
+      await fetchMenus();
+    } catch (err) {
+      console.error('Error adding menu to discount:', err);
+      alert('Failed to add menu to discount: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setAddingMenuDiscounts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(menuId);
+        return newSet;
+      });
+    }
+  };
+
+  const isMenuInDiscount = (menuId: number): boolean => {
+    if (!selectedDiscountForMenus?.menu_diskon) return false;
+    return selectedDiscountForMenus.menu_diskon.some(md => md.id_menu === menuId);
   };
 
   const isDiscountActive = (discount: Discount) => {
@@ -220,6 +352,7 @@ export function DiscountManagement() {
         <div className="grid gap-4">
           {discounts.map((discount, index) => {
             const isActive = isDiscountActive(discount);
+            const menuCount = discount.menu_diskon?.length || 0;
             return (
               <div
                 key={discount.id}
@@ -240,8 +373,11 @@ export function DiscountManagement() {
                           Inactive
                         </span>
                       )}
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
+                        {menuCount} {menuCount === 1 ? 'menu' : 'menus'}
+                      </span>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                       <div className="flex items-center gap-2">
                         <Percent className="w-4 h-4 text-gray-400" />
@@ -262,13 +398,39 @@ export function DiscountManagement() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Show menus if available */}
+                    {discount.menu_diskon && discount.menu_diskon.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <p className="text-sm font-semibold text-gray-600 mb-2">Included menus:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {discount.menu_diskon.map((menu) => (
+                            <span
+                              key={menu.id}
+                              className="px-3 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"
+                            >
+                              {menu.nama_makanan}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => handleOpenMenuModal(discount)}
+                      variant="outline"
+                      size="sm"
+                      title="Manage menus"
+                    >
+                      <Utensils className="w-4 h-4" />
+                    </Button>
                     <Button
                       onClick={() => handleOpenModal(discount)}
                       variant="outline"
                       size="sm"
+                      title="Edit discount"
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
@@ -290,7 +452,7 @@ export function DiscountManagement() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Add/Edit Discount Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-scale-in">
@@ -414,6 +576,97 @@ export function DiscountManagement() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Menu to Discount Modal */}
+      {showMenuModal && selectedDiscountForMenus && (
+        <div className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                    <Utensils className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900">Manage Menus</h3>
+                    <p className="text-sm text-gray-600">{selectedDiscountForMenus.nama_diskon}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseMenuModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {menusLoading ? (
+                <div className="text-center py-12">
+                  <div className="inline-block w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                  <p className="text-gray-600">Loading menus...</p>
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {menus.map((menu) => {
+                    const isInDiscount = isMenuInDiscount(menu.id);
+                    const isAdding = addingMenuDiscounts.has(menu.id);
+
+                    return (
+                      <div
+                        key={menu.id}
+                        className="flex items-center justify-between p-4 border-2 border-gray-100 rounded-xl hover:border-gray-200 transition-all"
+                      >
+                        <div className="flex items-center gap-4">
+                          {menu.foto && (
+                            <img
+                              src={`https://ukk-p2.smktelkom-mlg.sch.id/${menu.foto}`}
+                              alt={menu.nama_makanan}
+                              className="w-16 h-16 rounded-lg object-cover"
+                            />
+                          )}
+                          <div>
+                            <h4 className="font-bold text-gray-800">{menu.nama_makanan}</h4>
+                            <p className="text-sm text-gray-600">
+                              {menu.jenis === 'makanan' ? 'Food' : 'Drink'} • Rp {menu.harga.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isInDiscount ? (
+                            <span className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 text-sm font-semibold rounded-full">
+                              <Check className="w-4 h-4" />
+                              Added
+                            </span>
+                          ) : (
+                            <Button
+                              onClick={() => handleAddMenuToDiscount(menu.id)}
+                              disabled={isAdding}
+                              variant="primary"
+                              size="sm"
+                            >
+                              {isAdding ? (
+                                <>
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                                  Adding...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4 mr-1" />
+                                  Add
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

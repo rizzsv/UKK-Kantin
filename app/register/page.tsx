@@ -94,8 +94,8 @@ export default function RegisterPage() {
       <div className="container mx-auto max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-4">
-            <UserPlus className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src="/logo.png" alt="CanteenHub Logo" className="w-16 h-16 rounded-2xl shadow-lg" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Create <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">Account</span>

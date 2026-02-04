@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api';
 import { menuApiClient } from '@/lib/menu-api';
 import { Button } from '@/components/Button';
 import { getCurrentUser } from '@/lib/auth';
+import { SuccessNotification } from '@/components/SuccessNotification';
 import { Store, User, Lock, ArrowRight, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,6 +20,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showLoginSuccess, setShowLoginSuccess] = useState(false);
 
   useEffect(() => {
     // Check if already logged in
@@ -136,8 +138,13 @@ export default function AdminLogin() {
         
         console.log('✅ Admin login successful, token stored');
         
-        // Redirect to admin dashboard
-        router.push('/admin/dashboard');
+        // Show success notification
+        setShowLoginSuccess(true);
+        
+        // Redirect to admin dashboard after showing notification
+        setTimeout(() => {
+          router.push('/admin/dashboard');
+        }, 1500);
       } else {
         throw new Error('Token not found in response');
       }
@@ -150,7 +157,14 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 flex items-center justify-center px-4 py-12">
+    <>
+      <SuccessNotification
+        show={showLoginSuccess}
+        message="Selamat datang Admin! Login berhasil."
+        onClose={() => setShowLoginSuccess(false)}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 flex items-center justify-center px-4 py-12">
       {/* Background Decorations */}
       <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
       <div className="absolute bottom-20 right-10 w-72 h-72 bg-gray-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
@@ -169,8 +183,8 @@ export default function AdminLogin() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-4">
-            <Store className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src="/logo.png" alt="CanteenHub Logo" className="w-16 h-16 rounded-2xl shadow-lg" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Stall Admin Login</h1>
           <p className="text-gray-600">Sign in to manage your stall</p>
@@ -267,5 +281,6 @@ export default function AdminLogin() {
         </div>
       </div>
     </div>
+    </>
   );
 }

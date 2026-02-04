@@ -6,36 +6,30 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Get headers
     const token = request.headers.get("authorization");
     const makerID = request.headers.get("makerID") || "1";
 
-    console.log("📋 Fetching discounts");
-    console.log("🔍 Search:", body.search || 'No search term');
+    console.log("➕ Adding menu to discount:", body);
     console.log("🔑 Token:", token ? token.substring(0, 20) + '...' : 'No token');
     console.log("🏪 MakerID:", makerID);
 
     // Create form data for backend API
-    // Use URLSearchParams instead of FormData for better Node.js compatibility
-    const params = new URLSearchParams();
-    params.append('search', body.search || '');
-
-    console.log("📦 Form data being sent:");
-    console.log(`  search = "${body.search || ''}"`);
-    console.log("📋 URLSearchParams:", params.toString());
+    const formData = new FormData();
+    formData.append('id_diskon', body.id_diskon.toString());
+    formData.append('id_menu', body.id_menu.toString());
 
     // Forward to backend API
     const response = await fetch(
-      `https://ukk-p2.smktelkom-mlg.sch.id/api/showdiskon`,
+      `https://ukk-p2.smktelkom-mlg.sch.id/api/insert_menu_diskon`,
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
           Authorization: token || "",
           makerID: makerID,
         },
-        body: params,
+        body: formData,
       },
     );
 
@@ -55,30 +49,14 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log("✅ Get discounts response:", data);
-    console.log("📊 Response structure:", {
-      hasData: !!data.data,
-      hasDiskon: !!data.diskon,
-      isArray: Array.isArray(data),
-      keys: Object.keys(data),
-      dataType: typeof data,
-      dataLength: data.data?.length || 0,
-    });
-
-    // Log the actual data if available
-    if (data.data && Array.isArray(data.data)) {
-      console.log(`📋 Found ${data.data.length} discount(s)`);
-      if (data.data.length > 0) {
-        console.log("🏷️ Sample discount:", data.data[0]);
-      }
-    }
+    console.log("✅ Insert menu discount response:", data);
 
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("❌ Get discounts proxy error:", error);
+    console.error("❌ Insert menu discount proxy error:", error);
     return NextResponse.json(
       {
-        error: "Failed to fetch discounts",
+        error: "Failed to add menu to discount",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },

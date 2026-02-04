@@ -26,7 +26,7 @@ export function Button({
   const variantClasses = {
     primary: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg',
     secondary: 'bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:from-gray-700 hover:to-gray-800 shadow-md hover:shadow-lg',
-    outline: 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50',
+    outline: 'border-2 border-blue-600 text-blue-600 hover:bg-white hover:border-blue-700 hover:shadow-md',
     ghost: 'text-gray-700 hover:bg-gray-100',
   };
 
@@ -44,6 +44,7 @@ export function Button({
       onClick={onClick}
       disabled={disabled}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabledClasses} ${className}`}
+      suppressHydrationWarning
     >
       {children}
     </button>

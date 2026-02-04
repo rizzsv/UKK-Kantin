@@ -204,6 +204,10 @@ export function OrdersManagement() {
       // Refresh orders list
       await fetchOrders(selectedStatus);
 
+      // Refresh monthly revenue to update income
+      console.log('🔄 Refreshing monthly revenue after order update...');
+      await fetchMonthlyRevenue(selectedMonth);
+
       alert('Order status successfully updated!');
     } catch (err) {
       console.error('Error updating status:', err);

@@ -72,8 +72,8 @@ export function Navbar() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-2.5 rounded-xl shadow-lg transform group-hover:rotate-12 transition-transform duration-300">
-              <UtensilsCrossed className="w-7 h-7 text-white" />
+            <div className="transform group-hover:scale-110 transition-transform duration-300">
+              <img src="/logo.png" alt="CanteenHub Logo" className="w-12 h-12 rounded-xl shadow-lg" />
             </div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
@@ -90,6 +90,12 @@ export function Navbar() {
               className="text-gray-700 hover:text-blue-600 font-semibold transition-colors duration-200"
             >
               Menu
+            </Link>
+            <Link
+              href="/discounts"
+              className="text-gray-700 hover:text-orange-600 font-semibold transition-colors duration-200 flex items-center gap-1"
+            >
+              <span>🏷️</span> Promo
             </Link>
             <Link
               href="/orders"

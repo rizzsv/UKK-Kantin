@@ -126,9 +126,31 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
+    const url = `${this.baseURL}${endpoint}`;
+
+    // Log request details for debugging
+    console.log(`🌐 API Request:`, {
+      endpoint,
+      url,
+      method: options.method || 'GET',
+      hasToken: !!this.token,
+      tokenPreview: this.token ? this.token.substring(0, 20) + '...' : 'No token',
+      headers: {
+        ...headers,
+        Authorization: headers.Authorization ? headers.Authorization.substring(0, 30) + '...' : undefined,
+      },
+    });
+
+    const response = await fetch(url, {
       ...options,
       headers,
+    });
+
+    console.log(`📥 API Response:`, {
+      endpoint,
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText,
     });
 
     if (!response.ok) {
@@ -158,10 +180,17 @@ class ApiClient {
     // Check if response has content
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      return response.json();
+      const data = await response.json();
+      console.log(`✅ API Response JSON:`, {
+        endpoint,
+        hasData: !!data,
+        dataType: typeof data,
+      });
+      return data;
     }
-    
+
     // Return empty object if no JSON response
+    console.log(`⚠️ API Response: No JSON content for ${endpoint}`);
     return {};
   }
 
@@ -291,17 +320,89 @@ class ApiClient {
   }
 
   async getStudentOrders(): Promise<OrderResponse[]> {
-    const response = await this.request('/showorder/dimasak');
+    // Fetch all orders with different statuses
+    // Statuses: belum dikonfirm, dimasak, diantar, sampai
+    const statuses = ['belum dikonfirm', 'dimasak', 'diantar', 'sampai'];
+    const allOrders: OrderResponse[] = [];
 
-    // Handle response structure
-    if (response && response.status && response.data) {
-      if (Array.isArray(response.data)) {
-        return response.data;
+    for (const status of statuses) {
+      try {
+        console.log(`📋 Fetching order with status: "${status}"`);
+
+        const response = await this.request(`/showorder/${status}`);
+
+        console.log(`📦 Response for ${status}:`, response);
+
+        // Handle the API response structure
+        // Expected: { status: true, message: "...", data: { order: {...}, detail: [...] } }
+        
+        if (!response) {
+          console.log(`⚠️ No response for status "${status}"`);
+          continue;
+        }
+
+        // Check if the response has the expected structure
+        if (response.status === true && response.data) {
+          const { data } = response;
+          
+          // Case 1: Single order object { order: {...}, detail: [...] }
+          if (data.order && Array.isArray(data.detail)) {
+            const orderResponse: OrderResponse = {
+              order: data.order,
+              detail: data.detail
+            };
+            allOrders.push(orderResponse);
+            console.log(`✅ Found 1 order with status "${status}" (ID: ${data.order.id})`);
+          }
+          // Case 2: Array of orders [{ order: {...}, detail: [...] }, ...]
+          else if (Array.isArray(data)) {
+            const validOrders = data
+              .filter((item: any) => item.order && Array.isArray(item.detail))
+              .map((item: any) => ({
+                order: item.order,
+                detail: item.detail
+              }));
+            
+            if (validOrders.length > 0) {
+              allOrders.push(...validOrders);
+              console.log(`✅ Found ${validOrders.length} orders with status "${status}"`);
+            }
+          }
+          else {
+            console.log(`⚠️ Unexpected data structure for status "${status}":`, data);
+          }
+        } else if (response.data && Array.isArray(response.data)) {
+          // Fallback: response.data is directly an array
+          const validOrders = response.data
+            .filter((item: any) => item.order && Array.isArray(item.detail))
+            .map((item: any) => ({
+              order: item.order,
+              detail: item.detail
+            }));
+          
+          if (validOrders.length > 0) {
+            allOrders.push(...validOrders);
+            console.log(`✅ Found ${validOrders.length} orders with status "${status}"`);
+          }
+        } else {
+          console.log(`ℹ️ No orders found with status: "${status}"`);
+        }
+      } catch (error) {
+        console.error(`❌ Error fetching order with status "${status}":`, error);
+        // Continue fetching other statuses even if one fails
       }
-      // If single object, wrap in array
-      return [response.data];
     }
-    return [];
+
+    console.log(`📊 Total orders fetched: ${allOrders.length}`);
+
+    // Sort by date (newest first)
+    allOrders.sort((a, b) => {
+      const dateA = new Date(a.order.created_at || a.order.tanggal);
+      const dateB = new Date(b.order.created_at || b.order.tanggal);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return allOrders;
   }
 
   async getOrdersByMonthByStudent(date: string): Promise<Order[]> {

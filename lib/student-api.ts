@@ -146,9 +146,9 @@ class StudentApiClient {
     });
   }
 
-  // DELETE student (endpoint: DELETE /delete_siswa/:id)
+  // DELETE student (endpoint: DELETE /hapus_siswa/:id)
   async deleteStudent(id: number): Promise<ApiResponse<any>> {
-    return this.request<any>(`/delete_siswa/${id}`, {
+    return this.request<any>(`/hapus_siswa/${id}`, {
       method: 'DELETE',
     });
   }

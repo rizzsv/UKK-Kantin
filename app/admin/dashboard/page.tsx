@@ -39,6 +39,12 @@ export default function AdminDashboard() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // Statistics states
+  const [totalMenu, setTotalMenu] = useState(0);
+  const [todayOrders, setTodayOrders] = useState(0);
+  const [monthlyRevenue, setMonthlyRevenue] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(false);
+
   useEffect(() => {
     // Check if admin is logged in
     const loggedIn = localStorage.getItem('isAdminLoggedIn') === 'true';
@@ -166,7 +172,110 @@ export default function AdminDashboard() {
     };
 
     fetchStallProfile();
+    fetchStatistics();
   }, []);
+
+  // Refresh statistics when switching to profile tab
+  useEffect(() => {
+    if (activeTab === 'profile' && isLoggedIn) {
+      fetchStatistics();
+    }
+  }, [activeTab]);
+
+  const fetchStatistics = async () => {
+    const token = localStorage.getItem('adminAuthToken');
+    if (!token) return;
+
+    setLoadingStats(true);
+    try {
+      console.log('📊 Fetching statistics...');
+
+      // Fetch total menu (food + drinks)
+      const [foodResponse, drinkResponse] = await Promise.all([
+        fetch('/api/getmenufood', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'makerID': '1',
+          },
+          body: new FormData(),
+        }),
+        fetch('/api/getmenudrink', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'makerID': '1',
+          },
+          body: new FormData(),
+        }),
+      ]);
+
+      let foodCount = 0;
+      let drinkCount = 0;
+
+      if (foodResponse.ok) {
+        const foodData = await foodResponse.json();
+        const foodItems = Array.isArray(foodData) ? foodData : (foodData?.data || []);
+        foodCount = foodItems.length;
+      }
+
+      if (drinkResponse.ok) {
+        const drinkData = await drinkResponse.json();
+        const drinkItems = Array.isArray(drinkData) ? drinkData : (drinkData?.data || []);
+        drinkCount = drinkItems.length;
+      }
+
+      setTotalMenu(foodCount + drinkCount);
+      console.log(`📦 Total Menu: ${foodCount + drinkCount} (${foodCount} food + ${drinkCount} drinks)`);
+
+      // Fetch today's orders
+      const today = new Date().toISOString().split('T')[0];
+      const allOrdersResponse = await fetch('/api/getorder/all', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'makerID': '1',
+        },
+      });
+
+      if (allOrdersResponse.ok) {
+        const ordersData = await allOrdersResponse.json();
+        const allOrders = ordersData?.data || [];
+        // Filter orders for today
+        const todayOrdersCount = allOrders.filter((order: any) => {
+          const orderDate = new Date(order.tanggal || order.created_at).toISOString().split('T')[0];
+          return orderDate === today;
+        }).length;
+        setTodayOrders(todayOrdersCount);
+        console.log(`📋 Today's Orders: ${todayOrdersCount}`);
+      }
+
+      // Fetch monthly revenue
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      console.log(`💰 Fetching monthly revenue for: ${currentMonth}`);
+
+      const revenueResponse = await fetch(`/api/showpemasukanbybulan/${currentMonth}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'makerID': '1',
+        },
+      });
+
+      if (revenueResponse.ok) {
+        const revenueData = await revenueResponse.json();
+        console.log('💰 Revenue response:', revenueData);
+        const revenue = revenueData?.data?.total_pemasukan || revenueData?.total_pemasukan || 0;
+        setMonthlyRevenue(revenue);
+        console.log(`✅ Monthly Revenue: Rp ${revenue.toLocaleString('id-ID')}`);
+      } else {
+        console.error('❌ Failed to fetch revenue:', revenueResponse.status);
+      }
+    } catch (err) {
+      console.error('❌ Error fetching statistics:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleLogout = () => {
     // Clear all admin data
@@ -367,7 +476,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('profile')}
               variant={activeTab === 'profile' ? 'primary' : 'outline'}
               size="sm"
-              className={activeTab === 'profile' ? '!text-black font-bold' : 'font-semibold'}
+              className={activeTab === 'profile' ? '!text-white font-bold' : 'font-semibold'}
             >
               <Store className="w-4 h-4 mr-2" />
               Stall Profile
@@ -376,7 +485,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('menu')}
               variant={activeTab === 'menu' ? 'primary' : 'outline'}
               size="sm"
-              className={activeTab === 'menu' ? '!text-black font-bold' : 'font-semibold'}
+              className={activeTab === 'menu' ? '!text-white font-bold' : 'font-semibold'}
             >
               <Package className="w-4 h-4 mr-2" />
               Menu
@@ -385,7 +494,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('students')}
               variant={activeTab === 'students' ? 'primary' : 'outline'}
               size="sm"
-              className={activeTab === 'students' ? '!text-black font-bold' : 'font-semibold'}
+              className={activeTab === 'students' ? '!text-white font-bold' : 'font-semibold'}
             >
               <UsersIcon className="w-4 h-4 mr-2" />
               Students
@@ -394,7 +503,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('orders')}
               variant={activeTab === 'orders' ? 'primary' : 'outline'}
               size="sm"
-              className={activeTab === 'orders' ? '!text-black font-bold' : 'font-semibold'}
+              className={activeTab === 'orders' ? '!text-white font-bold' : 'font-semibold'}
             >
               <ClipboardList className="w-4 h-4 mr-2" />
               Orders
@@ -403,7 +512,7 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab('discounts')}
               variant={activeTab === 'discounts' ? 'primary' : 'outline'}
               size="sm"
-              className={activeTab === 'discounts' ? '!text-black font-bold' : 'font-semibold'}
+              className={activeTab === 'discounts' ? '!text-white font-bold' : 'font-semibold'}
             >
               <Tag className="w-4 h-4 mr-2" />
               Discounts
@@ -414,12 +523,14 @@ export default function AdminDashboard() {
           {activeTab === 'profile' && (
             <>
               {/* Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-gray-600 text-sm mb-1">Total Menu</p>
-                      <p className="text-3xl font-bold text-gray-900">0</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {loadingStats ? '...' : totalMenu}
+                      </p>
                     </div>
                     <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                       <Package className="w-6 h-6 text-blue-600" />
@@ -431,7 +542,9 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-gray-600 text-sm mb-1">Today's Orders</p>
-                      <p className="text-3xl font-bold text-gray-900">0</p>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {loadingStats ? '...' : todayOrders}
+                      </p>
                     </div>
                     <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                       <TrendingUp className="w-6 h-6 text-green-600" />
@@ -442,11 +555,33 @@ export default function AdminDashboard() {
                 <div className="bg-white rounded-xl shadow-md p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-600 text-sm mb-1">Total Pelanggan</p>
-                      <p className="text-3xl font-bold text-gray-900">0</p>
+                      <p className="text-gray-600 text-sm mb-1">Monthly Revenue</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {loadingStats ? '...' : `Rp ${monthlyRevenue.toLocaleString('id-ID')}`}
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-yellow-600" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-md p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-600 text-sm mb-1">Actions</p>
+                      <Button
+                        onClick={fetchStatistics}
+                        variant="outline"
+                        size="sm"
+                        disabled={loadingStats}
+                        className="mt-1"
+                      >
+                        Refresh Stats
+                      </Button>
                     </div>
                     <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <UsersIcon className="w-6 h-6 text-purple-600" />
+                      <Store className="w-6 h-6 text-purple-600" />
                     </div>
                   </div>
                 </div>

@@ -209,6 +209,32 @@ class MenuApiClient {
       method: 'DELETE',
     });
   }
+
+  // POST insert menu discount (insert_menu_diskon endpoint)
+  async insertMenuDiscount(data: {
+    id_diskon: number;
+    id_menu: number;
+  }): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    formData.append('id_diskon', data.id_diskon.toString());
+    formData.append('id_menu', data.id_menu.toString());
+
+    return this.request<any>('/insert_menu_diskon', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  // POST get menu discounts (getmenudiskon endpoint)
+  async getMenuDiscounts(search: string = ''): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    formData.append('search', search);
+
+    return this.request<any>('/getmenudiskon', {
+      method: 'POST',
+      body: formData,
+    });
+  }
 }
 
 export const menuApiClient = new MenuApiClient();

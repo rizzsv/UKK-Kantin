@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { Button } from '@/components/Button';
 import { getCurrentUser } from '@/lib/auth';
+import { SuccessNotification } from '@/components/SuccessNotification';
 import { LogIn, User, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     // Check if already logged in
@@ -75,7 +77,7 @@ export default function LoginPage() {
       console.log('✅ User data saved:', userData);
 
       // Show success message
-      alert('Login berhasil!');
+      setShowSuccess(true);
       
       // Wait a bit to ensure localStorage is written before redirect
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -83,8 +85,10 @@ export default function LoginPage() {
       // Trigger storage event manually for same-tab updates
       window.dispatchEvent(new Event('storage'));
       
-      // Redirect to homepage
-      router.push('/');
+      // Redirect to homepage after showing notification
+      setTimeout(() => {
+        router.push('/');
+      }, 1500);
     } catch (err) {
       console.error('Login error:', err);
       setError(err instanceof Error ? err.message : 'Login gagal. Silakan coba lagi.');
@@ -94,12 +98,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+    <>
+      <SuccessNotification
+        show={showSuccess}
+        message="Selamat datang kembali! Anda berhasil login."
+        onClose={() => setShowSuccess(false)}
+      />
+      
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100 pt-28 pb-20 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-lg mb-4">
-            <LogIn className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src="/logo.png" alt="CanteenHub Logo" className="w-16 h-16 rounded-2xl shadow-lg" />
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome <span className="bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">Back!</span>
@@ -226,5 +237,6 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

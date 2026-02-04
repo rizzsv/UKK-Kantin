@@ -12,9 +12,18 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   useEffect(() => {
     fetchOrders();
+
+    // Auto-refresh every 10 seconds to update order status
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing orders...');
+      fetchOrders();
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchOrders = async () => {
@@ -24,19 +33,38 @@ export default function OrdersPage() {
       return;
     }
 
+    console.log('🔑 Token found:', token.substring(0, 20) + '...');
+
     // Set token to API client
     apiClient.setToken(token);
 
-    setLoading(true);
+    // Don't show loading spinner on auto-refresh
+    const isAutoRefresh = orders.length > 0;
+    if (!isAutoRefresh) {
+      setLoading(true);
+    }
     setError('');
 
     try {
+      console.log('📋 Fetching student orders...');
       const data = await apiClient.getStudentOrders();
-      console.log('📋 Orders data:', data);
+      console.log('✅ Orders data received:', data);
+      console.log(`📦 Total orders: ${data.length}`);
+
+      if (data.length === 0) {
+        console.log('⚠️ No orders found');
+      }
+
       setOrders(data);
+      setLastUpdate(new Date());
     } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError(err instanceof Error ? err.message : 'Gagal memuat pesanan');
+      console.error('❌ Error fetching orders:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Gagal memuat pesanan';
+      setError(errorMessage);
+      console.error('Error details:', {
+        message: errorMessage,
+        stack: err instanceof Error ? err.stack : undefined,
+      });
     } finally {
       setLoading(false);
     }
@@ -114,7 +142,10 @@ export default function OrdersPage() {
         </div>
 
         {/* Refresh Button */}
-        <div className="flex justify-end mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <p className="text-sm text-gray-500">
+            Last updated: {lastUpdate.toLocaleTimeString('id-ID')}
+          </p>
           <Button
             onClick={fetchOrders}
             variant="outline"

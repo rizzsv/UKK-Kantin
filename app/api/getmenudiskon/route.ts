@@ -3,25 +3,37 @@ import { NextRequest, NextResponse } from "next/server";
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+
     // Get headers
     const token = request.headers.get("authorization");
     const makerID = request.headers.get("makerID") || "1";
 
-    console.log("🏷️ Fetching menu with discounts for students");
+    console.log("🏷️ Fetching menu with discounts");
+    console.log("🔍 Search:", body.search || 'No search term');
     console.log("🔑 Token:", token ? token.substring(0, 20) + '...' : 'No token');
     console.log("🏪 MakerID:", makerID);
 
+    // Create form data for backend API
+    const params = new URLSearchParams();
+    params.append('search', body.search || '');
+
+    console.log("📦 Form data being sent:");
+    console.log(`  search = "${body.search || ''}"`);
+
     // Forward to backend API
     const response = await fetch(
-      `https://ukk-p2.smktelkom-mlg.sch.id/api/getmenudiskonsiswa`,
+      `https://ukk-p2.smktelkom-mlg.sch.id/api/getmenudiskon`,
       {
-        method: "GET",
+        method: "POST",
         headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
           Authorization: token || "",
           makerID: makerID,
         },
+        body: params,
       },
     );
 

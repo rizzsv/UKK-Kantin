@@ -11,8 +11,8 @@ export function Footer() {
           {/* Brand Section */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-3 group">
-              <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-2.5 rounded-xl shadow-lg transform group-hover:rotate-12 transition-transform duration-300">
-                <UtensilsCrossed className="w-6 h-6 text-white" />
+              <div className="transform group-hover:scale-110 transition-transform duration-300">
+                <img src="/logo.png" alt="CanteenHub Logo" className="w-12 h-12 rounded-xl shadow-lg" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold">CanteenHub</h2>
@@ -124,13 +124,6 @@ export function Footer() {
               </a>
             </div>
           </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-700 mt-8 pt-8 text-center">
-          <p className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} CanteenHub. All rights reserved. Built with ❤️ for better canteen experience.
-          </p>
         </div>
       </div>
     </footer>

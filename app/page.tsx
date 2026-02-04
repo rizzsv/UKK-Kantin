@@ -15,7 +15,6 @@ interface CartItem extends MenuItem {
 export default function Home() {
   const router = useRouter();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [discountMenus, setDiscountMenus] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | 'food' | 'drink'>('food');
@@ -138,68 +137,6 @@ export default function Home() {
         console.log('📂 Active category:', activeCategory);
         console.log('✅ Items fetched from API:', menu.length);
         setMenuItems(menu); // REPLACE, don't append
-
-        // Fetch discount menus (try with or without token)
-        try {
-          console.log('🏷️ Attempting to fetch discount menus...');
-          const headers: any = {
-            'makerID': '1',
-          };
-
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
-
-          const discountResponse = await fetch('/api/getmenudiskon', {
-            headers: headers,
-          });
-
-          console.log('🏷️ Discount response status:', discountResponse.status);
-
-          if (discountResponse.ok) {
-            const discountData = await discountResponse.json();
-            console.log('🏷️ Discount data received:', discountData);
-            console.log('🏷️ Discount data structure:', {
-              hasData: !!discountData?.data,
-              isArray: Array.isArray(discountData?.data),
-              dataLength: discountData?.data?.length || 0,
-            });
-
-            // Extract active discounts with menus
-            const now = new Date();
-            console.log('📅 Current date:', now.toISOString());
-
-            const allDiscounts = discountData?.data || [];
-            console.log('📋 Total discounts from API:', allDiscounts.length);
-
-            const activeDiscounts = allDiscounts.filter((discount: any) => {
-              const start = new Date(discount.tanggal_awal);
-              const end = new Date(discount.tanggal_akhir);
-              const isActive = now >= start && now <= end;
-              const hasMenus = discount.menu_diskon && discount.menu_diskon.length > 0;
-
-              console.log(`  Discount "${discount.nama_diskon}":`, {
-                start: start.toISOString(),
-                end: end.toISOString(),
-                isActive,
-                menuCount: discount.menu_diskon?.length || 0,
-                hasMenus,
-              });
-
-              return isActive && hasMenus;
-            });
-
-            console.log('✅ Active discounts with menus:', activeDiscounts.length);
-            if (activeDiscounts.length > 0) {
-              console.log('📋 Active discount details:', activeDiscounts);
-            }
-            setDiscountMenus(activeDiscounts);
-          } else {
-            console.error('❌ Failed to fetch discount menus:', discountResponse.status);
-          }
-        } catch (discountErr) {
-          console.error('❌ Error fetching discount menus:', discountErr);
-        }
       } catch (err) {
         console.error('Error fetching menu:', err);
 
@@ -414,14 +351,14 @@ export default function Home() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                        className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                        className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center transition-colors font-bold"
                       >
                         -
                       </button>
                       <span className="w-8 text-center font-semibold">{item.quantity}</span>
                       <button
                         onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                        className="w-8 h-8 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                        className="w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center transition-colors font-bold"
                       >
                         +
                       </button>
@@ -517,127 +454,32 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Discount Menu Section - Only show if there are active discounts */}
-      {discountMenus.length > 0 && !debouncedSearchQuery && (
-        <section className="py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50">
-          <div className="container mx-auto">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-2 rounded-full text-sm font-bold mb-4 animate-bounce-slow shadow-lg">
-                <Sparkles className="w-5 h-5" />
-                <span>SPECIAL DISCOUNT!</span>
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-3">
-                Menu <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Diskon Spesial</span>
-              </h2>
-              <p className="text-gray-600 text-lg">Hemat hingga puluhan persen untuk menu pilihan!</p>
-            </div>
-
-            {discountMenus.map((discount, discountIndex) => (
-              <div key={discount.id} className="mb-12">
-                <div className="flex items-center justify-between mb-6 bg-white rounded-2xl p-6 shadow-md">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
-                      <span className="text-3xl font-bold text-white">{discount.persentase_diskon}%</span>
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900">{discount.nama_diskon}</h3>
-                      <p className="text-sm text-gray-600">
-                        Berlaku sampai {new Date(discount.tanggal_akhir).toLocaleDateString('id-ID', { 
-                          day: 'numeric', 
-                          month: 'long', 
-                          year: 'numeric' 
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-gradient-to-r from-orange-100 to-red-100 px-6 py-3 rounded-xl">
-                    <p className="text-sm font-semibold text-orange-800">
-                      {discount.menu_diskon.length} Menu Tersedia
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {discount.menu_diskon.map((menu: any, menuIndex: number) => {
-                    const originalPrice = menu.harga;
-                    const discountedPrice = originalPrice - (originalPrice * discount.persentase_diskon / 100);
-
-                    return (
-                      <div
-                        key={`${menu.id}-${menuIndex}`}
-                        className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden animate-fade-in-up relative flex flex-col h-full"
-                        style={{ animationDelay: `${menuIndex * 50}ms` }}
-                      >
-                        {/* Discount Badge */}
-                        <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
-                          -{discount.persentase_diskon}%
-                        </div>
-
-                        <div className="relative h-48 bg-gray-200 flex-shrink-0">
-                          <img
-                            src={`https://ukk-p2.smktelkom-mlg.sch.id/${menu.foto}`}
-                            alt={menu.nama_makanan}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80';
-                            }}
-                          />
-                        </div>
-
-                        <div className="p-5 flex flex-col flex-grow">
-                          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
-                            {menu.nama_makanan}
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-grow">
-                            {menu.deskripsi || 'Delicious and quality food'}
-                          </p>
-
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <p className="text-xs text-gray-500 line-through">
-                                Rp {originalPrice.toLocaleString('id-ID')}
-                              </p>
-                              <p className="text-2xl font-bold text-orange-600">
-                                Rp {Math.round(discountedPrice).toLocaleString('id-ID')}
-                              </p>
-                              <p className="text-xs text-green-600 font-semibold">
-                                Save Rp {(originalPrice - discountedPrice).toLocaleString('id-ID')}
-                              </p>
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => handleAddToCart({
-                              id: menu.id_menu,
-                              nama: menu.nama_makanan,
-                              harga: Math.round(discountedPrice),
-                              deskripsi: menu.deskripsi,
-                              foto: menu.foto,
-                              kategori: menu.jenis as 'makanan' | 'minuman',
-                              id_menu: menu.id_menu,
-                              id_stan: menu.id_stan,
-                              discount_name: discount.nama_diskon,
-                              discount_percentage: discount.persentase_diskon,
-                            })}
-                            className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-xl font-bold hover:from-orange-600 hover:to-red-600 transition-all shadow-md hover:shadow-lg"
-                          >
-                            + Add to Cart
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* Menu Section */}
       <section className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto">
+          {/* Promo Banner */}
+          <div className="mb-10">
+            <button
+              onClick={() => router.push('/discounts')}
+              className="w-full bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 hover:from-blue-600 hover:via-blue-700 hover:to-blue-800 text-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 group"
+            >
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-white/20 p-4 rounded-2xl backdrop-blur-sm">
+                    <Sparkles className="w-8 h-8 text-white animate-spin-slow" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-2xl md:text-3xl font-black mb-1">Menu Diskon Spesial! 🎉</h3>
+                    <p className="text-white/90 text-sm md:text-base">Hemat hingga puluhan persen untuk menu pilihan</p>
+                  </div>
+                </div>
+                <div className="bg-white text-blue-600 px-6 py-3 rounded-xl font-black text-lg group-hover:scale-110 transition-transform">
+                  Lihat Promo →
+                </div>
+              </div>
+            </button>
+          </div>
+
           {/* Search and Filters */}
           <div className="mb-10 space-y-6">
             <div className="relative">
