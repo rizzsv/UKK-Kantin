@@ -407,13 +407,15 @@ export function OrdersManagement() {
             const orderItems = order.detail_trans || order.order_items || order.detail || [];
 
             // Calculate total from order items if not provided
-            // Support 'harga_beli' and 'harga' field names
+            // NOTE: harga_beli is already the TOTAL price (unit_price * qty), not unit price
+            // So we should NOT multiply by qty again
             const totalHarga = order.total_harga ||
               (orderItems.reduce((sum, item) => {
-                const price = item.harga_beli || item.harga || 0;
-                const qty = item.qty || 0;
-                console.log(`💰 Item calc: price=${price}, qty=${qty}, subtotal=${price * qty}`);
-                return sum + (price * qty);
+                const totalPrice = item.harga_beli || item.harga || 0;
+                const qty = item.qty || 1;
+                const unitPrice = totalPrice / qty;
+                console.log(`💰 Item: unit=${unitPrice}, qty=${qty}, total=${totalPrice}`);
+                return sum + totalPrice;
               }, 0));
 
             console.log(`📊 Order #${order.id} total: ${totalHarga}`);
@@ -448,16 +450,21 @@ export function OrdersManagement() {
                 {orderItems && orderItems.length > 0 && (
                   <div className="mb-4 border-t border-b border-gray-200 py-4 space-y-2">
                     {orderItems.map((item, idx) => {
-                      const price = item.harga_beli || item.harga || 0;
+                      // harga_beli is already the TOTAL price (unit_price * qty)
+                      const totalPrice = item.harga_beli || item.harga || 0;
+                      const qty = item.qty || 1;
+                      const unitPrice = totalPrice / qty;
                       const displayName = item.nama_makanan || item.nama_menu || `Menu ID: ${item.id_menu}`;
                       return (
                         <div key={item.id || idx} className="flex justify-between items-center">
-                          <div>
-                            <span className="text-gray-800">{displayName}</span>
-                            <span className="text-gray-500 ml-2">×{item.qty}</span>
+                          <div className="flex-1">
+                            <span className="text-gray-800 font-medium">{displayName}</span>
+                            <div className="text-sm text-gray-500 mt-1">
+                              Rp {unitPrice.toLocaleString('id-ID')} × {qty}
+                            </div>
                           </div>
                           <span className="text-gray-700 font-semibold">
-                            Rp {(price * item.qty).toLocaleString('id-ID')}
+                            Rp {totalPrice.toLocaleString('id-ID')}
                           </span>
                         </div>
                       );

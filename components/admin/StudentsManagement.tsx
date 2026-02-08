@@ -283,7 +283,7 @@ export function StudentsManagement() {
           <p className="text-gray-600 mb-4">
             Add your first student
           </p>
-          <Button onClick={handleAdd} variant="primary" className="!text-black">
+          <Button onClick={handleAdd} variant="primary" className="!text-white">
             <Plus className="w-5 h-5 mr-2" />
             Add Student
           </Button>
@@ -364,7 +364,7 @@ export function StudentsManagement() {
                             onClick={() => handleEdit(student)}
                             variant="outline"
                             size="sm"
-                            className="!text-blue-600 !border-blue-300 hover:!bg-blue-50"
+                            className="!text-white !bg-blue-600 !border-blue-600 hover:!bg-blue-700"
                             disabled={updateStudentMutation.isPending}
                           >
                             <Edit className="w-4 h-4 mr-1" />
@@ -374,7 +374,7 @@ export function StudentsManagement() {
                             onClick={() => handleDelete(student.id, student.nama_siswa)}
                             variant="outline"
                             size="sm"
-                            className="!text-red-600 !border-red-300 hover:!bg-red-50"
+                            className="!text-white !bg-red-600 !border-red-600 hover:!bg-red-700"
                             disabled={deleteStudentMutation.isPending}
                           >
                             <Trash2 className="w-4 h-4 mr-1" />
@@ -518,7 +518,7 @@ export function StudentsManagement() {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="flex-1 !text-black"
+                  className="flex-1 !text-white"
                   disabled={createStudentMutation.isPending}
                 >
                   {createStudentMutation.isPending ? (
@@ -671,7 +671,7 @@ export function StudentsManagement() {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="flex-1 !text-black"
+                  className="flex-1 !text-white"
                   disabled={updateStudentMutation.isPending}
                 >
                   {updateStudentMutation.isPending ? (

@@ -23,15 +23,36 @@ export default function Home() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [ordering, setOrdering] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Debounce search query
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500); // Wait 500ms after user stops typing
-
-    return () => clearTimeout(timer);
+    if (searchQuery.trim()) {
+      setIsSearching(true);
+      const timer = setTimeout(() => {
+        setDebouncedSearchQuery(searchQuery);
+      }, 500); // Wait 500ms after user stops typing
+      return () => {
+        clearTimeout(timer);
+      };
+    } else {
+      setIsSearching(false);
+      setDebouncedSearchQuery('');
+    }
   }, [searchQuery]);
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        setCart(parsedCart);
+      } catch (error) {
+        console.error('Error parsing cart from localStorage:', error);
+      }
+    }
+  }, []); // Run only once on mount
 
   // Fetch real data from API with search support
   useEffect(() => {
@@ -111,11 +132,22 @@ export default function Home() {
         // Handle API response structure
         const data = response ? (Array.isArray(response) ? response : (response?.data || [])) : [];
 
-        console.log(`📊 Processed ${type} data count:`, data.length);
-        if (data.length > 0) console.log('📋 Sample item:', data[0]);
+        // Client-side filtering as backup - filter by nama (case-insensitive)
+        let filteredData = data;
+        if (debouncedSearchQuery.trim()) {
+          const searchLower = debouncedSearchQuery.toLowerCase();
+          filteredData = data.filter((item: any) => {
+            const nama = (item.nama || item.nama_makanan || '').toLowerCase();
+            const deskripsi = (item.deskripsi || '').toLowerCase();
+            return nama.includes(searchLower) || deskripsi.includes(searchLower);
+          });
+        }
+
+        console.log(`📊 Processed ${type} data count:`, filteredData.length);
+        if (filteredData.length > 0) console.log('📋 Sample item:', filteredData[0]);
 
         // Format the data - use jenis field from API to determine type
-        const menu: MenuItem[] = data.map((item: any) => {
+        const menu: MenuItem[] = filteredData.map((item: any) => {
           const jenis = item.jenis || item.type || type;
           return {
             id: item.id || item.id_menu || item.menu_id,
@@ -184,7 +216,7 @@ export default function Home() {
           setMenuItems(mockData);
           setError(''); // Clear error, show mock data instead
         } else {
-          setError('Gagal memuat menu. Silakan coba lagi.');
+          setError('Failed to load menu. Please try again.');
           setMenuItems([]);
         }
       } finally {
@@ -199,24 +231,64 @@ export default function Home() {
   // Just return the menuItems as-is
   const filteredItems = menuItems;
 
+  // Handle category change - reset search query
+  const handleCategoryChange = (category: 'all' | 'food' | 'drink') => {
+    setActiveCategory(category);
+    setSearchQuery(''); // Reset search when changing category
+    setDebouncedSearchQuery(''); // Reset debounced query immediately
+    setIsSearching(false);
+  };
+
+  // Update loading state based on isSearching
+  useEffect(() => {
+    if (isSearching) {
+      setLoading(true);
+    }
+  }, [isSearching]);
+
+  // Reset searching state after data is fetched
+  useEffect(() => {
+    if (!loading && isSearching) {
+      setIsSearching(false);
+    }
+  }, [loading, isSearching]);
+
   const handleAddToCart = (item: MenuItem) => {
     setCart(prevCart => {
-      const existingItemIndex = prevCart.findIndex(cartItem => cartItem.id === item.id);
+      // Use id_menu as the primary identifier for consistency
+      const itemId = item.id_menu || item.id;
+      const existingItemIndex = prevCart.findIndex(cartItem => (cartItem.id_menu || cartItem.id) === itemId);
 
       if (existingItemIndex > -1) {
-        // Increase quantity if already in cart
+        // Increase quantity if already in cart - keep the existing price
         const updatedCart = [...prevCart];
         updatedCart[existingItemIndex].quantity += 1;
+        // Save to localStorage
+        localStorage.setItem('cart', JSON.stringify(updatedCart));
         return updatedCart;
       } else {
-        // Add new item to cart
-        return [...prevCart, { ...item, quantity: 1 }];
+        // Add new item to cart - normalize the ID structure
+        const normalizedItem = {
+          ...item,
+          id: itemId, // Ensure id is set to id_menu for consistency
+          id_menu: itemId,
+          quantity: 1,
+        };
+        const updatedCart = [...prevCart, normalizedItem];
+        // Save to localStorage
+        localStorage.setItem('cart', JSON.stringify(updatedCart));
+        return updatedCart;
       }
     });
   };
 
   const handleRemoveFromCart = (itemId: number | null) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== itemId));
+    setCart(prevCart => {
+      const updatedCart = prevCart.filter(item => (item.id_menu || item.id) !== itemId);
+      // Save to localStorage
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      return updatedCart;
+    });
   };
 
   const handleUpdateQuantity = (itemId: number | null, newQuantity: number) => {
@@ -225,11 +297,14 @@ export default function Home() {
       return;
     }
 
-    setCart(prevCart =>
-      prevCart.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
+    setCart(prevCart => {
+      const updatedCart = prevCart.map(item =>
+        (item.id_menu || item.id) === itemId ? { ...item, quantity: newQuantity } : item
+      );
+      // Save to localStorage
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      return updatedCart;
+    });
   };
 
   const handlePlaceOrder = async () => {
@@ -275,6 +350,7 @@ export default function Home() {
       // Clear cart and redirect to orders
       setCart([]);
       setShowCart(false);
+      localStorage.removeItem('cart'); // Clear cart from localStorage
       alert('Order successfully placed! Please check your order status.');
       router.push('/orders');
     } catch (error) {
@@ -331,7 +407,7 @@ export default function Home() {
             {/* Cart Items */}
             <div className="p-6 space-y-4">
               {cart.map(item => (
-                <div key={item.id} className="bg-gray-50 rounded-xl p-4">
+                <div key={item.id_menu || item.id} className="bg-gray-50 rounded-xl p-4">
                   <div className="flex items-start gap-4">
                     <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 mb-1">{item.nama}</h3>
@@ -469,12 +545,12 @@ export default function Home() {
                     <Sparkles className="w-8 h-8 text-white animate-spin-slow" />
                   </div>
                   <div className="text-left">
-                    <h3 className="text-2xl md:text-3xl font-black mb-1">Menu Diskon Spesial! 🎉</h3>
-                    <p className="text-white/90 text-sm md:text-base">Hemat hingga puluhan persen untuk menu pilihan</p>
+                    <h3 className="text-2xl md:text-3xl font-black mb-1">Special Discount Menu! 🎉</h3>
+                    <p className="text-white/90 text-sm md:text-base">Save up to tens of percent on selected menus</p>
                   </div>
                 </div>
                 <div className="bg-white text-blue-600 px-6 py-3 rounded-xl font-black text-lg group-hover:scale-110 transition-transform">
-                  Lihat Promo →
+                  View Promo →
                 </div>
               </div>
             </button>
@@ -482,56 +558,107 @@ export default function Home() {
 
           {/* Search and Filters */}
           <div className="mb-10 space-y-6">
-            <div className="relative">
+            <div className="relative pb-10">
               <SearchBar
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder="Search for your favorite dish..."
+                placeholder={activeCategory === 'food' ? "Search food (e.g., Nasi, Mie, Ayam)..." : activeCategory === 'drink' ? "Search drinks (e.g., Teh, Kopi, Jus)..." : "Search all menus..."}
               />
-              {searchQuery !== debouncedSearchQuery && (
-                <div className="absolute -bottom-6 left-0 text-xs text-gray-500 flex items-center gap-1">
-                  <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-                  <span>Searching...</span>
+              {/* Searching indicator */}
+              {isSearching && (
+                <div className="absolute -bottom-8 left-0 text-xs text-blue-600 font-semibold flex items-center gap-2 animate-pulse">
+                  <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                  <span>Searching for "{searchQuery}"...</span>
+                </div>
+              )}
+              {/* Clear search indicator */}
+              {!isSearching && debouncedSearchQuery && (
+                <div className="absolute -bottom-8 left-0 text-xs text-gray-600 flex items-center gap-1">
+                  <span className="font-semibold text-blue-600">"{debouncedSearchQuery}"</span>
+                  <span>• {filteredItems.length} result{filteredItems.length !== 1 ? 's' : ''}</span>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setDebouncedSearchQuery('');
+                    }}
+                    className="ml-2 text-red-500 hover:text-white hover:bg-red-500 px-2 py-1 rounded font-bold transition-all"
+                  >
+                    Clear
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Show search results info */}
-            {debouncedSearchQuery && (
-              <div className="text-center">
-                <p className="text-sm text-gray-600">
-                  Showing search results for: <span className="font-semibold text-blue-600">"{debouncedSearchQuery}"</span>
-                  {filteredItems.length > 0 && (
-                    <span className="ml-2 text-gray-500">({filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''} found)</span>
+            {/* Show search results summary */}
+            {debouncedSearchQuery && !isSearching && (
+              <div className="text-center bg-blue-50 rounded-xl p-4 border border-blue-200">
+                <p className="text-sm text-gray-700">
+                  🔍 Found <span className="font-bold text-blue-600">{filteredItems.length}</span> item{filteredItems.length !== 1 ? 's' : ''} matching
+                  <span className="font-bold text-blue-600"> "{debouncedSearchQuery}"</span>
+                  {activeCategory !== 'all' && (
+                    <span> in <span className="font-bold text-blue-600">{activeCategory === 'food' ? '🍔 Food' : '🥤 Drinks'}</span></span>
                   )}
                 </p>
+                {filteredItems.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-2">💡 Try different keywords or select "All Menu" category</p>
+                )}
               </div>
             )}
 
             {/* Category Filters */}
             <div className="flex flex-wrap gap-3 justify-center">
               <Button
-                onClick={() => setActiveCategory('all')}
+                onClick={() => handleCategoryChange('all')}
                 variant={activeCategory === 'all' ? 'primary' : 'outline'}
                 size="sm"
+                className="transition-all duration-200 hover:scale-105"
               >
                 All Menu
               </Button>
               <Button
-                onClick={() => setActiveCategory('food')}
+                onClick={() => handleCategoryChange('food')}
                 variant={activeCategory === 'food' ? 'primary' : 'outline'}
                 size="sm"
+                className="transition-all duration-200 hover:scale-105"
               >
                 🍔 Food
               </Button>
               <Button
-                onClick={() => setActiveCategory('drink')}
+                onClick={() => handleCategoryChange('drink')}
                 variant={activeCategory === 'drink' ? 'primary' : 'outline'}
                 size="sm"
+                className="transition-all duration-200 hover:scale-105"
               >
                 🥤 Drinks
               </Button>
             </div>
+
+            {/* Active filters info */}
+            {(activeCategory !== 'all' || debouncedSearchQuery) && (
+              <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                <span>Active filters:</span>
+                {activeCategory !== 'all' && (
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">
+                    {activeCategory === 'food' ? '🍔 Food' : '🥤 Drinks'}
+                  </span>
+                )}
+                {debouncedSearchQuery && (
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold">
+                    "{debouncedSearchQuery}"
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    handleCategoryChange('all');
+                    setSearchQuery('');
+                    setDebouncedSearchQuery('');
+                  }}
+                  className="text-red-500 hover:text-white hover:bg-red-500 px-3 py-1 rounded font-bold ml-2 transition-all"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Menu Grid */}
@@ -543,8 +670,14 @@ export default function Home() {
                 <div className="absolute -top-4 -right-8 text-4xl animate-spin-slow">🍕</div>
                 <div className="absolute -bottom-2 -left-8 text-3xl animate-pulse">🍔</div>
               </div>
-              <p className="text-gray-600 text-lg font-semibold">Loading delicious menus for you...</p>
-              <p className="text-gray-500 text-sm mt-2">Please wait! 😋</p>
+              <p className="text-gray-600 text-lg font-semibold">
+                {isSearching ? `Searching for "${searchQuery}"...` : 'Loading delicious menus for you...'}
+              </p>
+              <p className="text-gray-500 text-sm mt-2">
+                {isSearching
+                  ? `Looking in ${activeCategory === 'all' ? 'all categories' : activeCategory === 'food' ? '🍔 Food' : '🥤 Drinks'}...`
+                  : 'Please wait! 😋'}
+              </p>
             </div>
           ) : error ? (
             <div className="max-w-2xl mx-auto">
@@ -680,8 +813,9 @@ export default function Home() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
                     onClick={() => {
+                      handleCategoryChange('all');
                       setSearchQuery('');
-                      setActiveCategory('all');
+                      setDebouncedSearchQuery('');
                     }}
                     variant="primary"
                     size="lg"

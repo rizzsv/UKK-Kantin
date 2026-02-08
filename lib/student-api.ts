@@ -60,7 +60,7 @@ class StudentApiClient {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Unauthorized. Silakan login terlebih dahulu.');
+          throw new Error('Unauthorized. Please login first.');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
       }

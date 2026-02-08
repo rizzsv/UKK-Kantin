@@ -42,10 +42,10 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
       if (user && requiredRole && user.role !== requiredRole) {
         console.log('❌ Wrong role, redirecting');
         if (requiredRole === 'admin' && user.role === 'student') {
-          alert('Akses ditolak! Anda tidak memiliki izin untuk mengakses halaman admin.');
+          alert('Access denied! You do not have permission to access the admin page.');
           router.replace('/');
         } else if (requiredRole === 'student' && user.role === 'admin') {
-          alert('Akses ditolak! Silakan logout dari admin terlebih dahulu.');
+          alert('Access denied! Please logout from admin first.');
           router.replace('/admin/dashboard');
         }
         setIsChecking(false);

@@ -133,7 +133,7 @@ export default function ProfilePage() {
     localStorage.removeItem('authToken');
     localStorage.removeItem('registeredUser');
     
-    alert('Logout berhasil!');
+    alert('Logout successful!');
     router.push('/login');
   };
 
@@ -147,7 +147,7 @@ export default function ProfilePage() {
     }
     
     setIsEditing(false);
-    alert('Profile berhasil diperbarui!');
+    alert('Profile successfully updated!');
   };
 
   if (loading) {
@@ -217,7 +217,7 @@ export default function ProfilePage() {
                   {isEditing ? (
                     <>
                       <Save className="w-5 h-5 mr-2" />
-                      Simpan
+                      Save
                     </>
                   ) : (
                     <>

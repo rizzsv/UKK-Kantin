@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthGuard } from '@/components/AuthGuard';
-import { Package, Clock, CheckCircle, Truck, ChefHat, AlertCircle, RefreshCw } from 'lucide-react';
+import { Package, Clock, CheckCircle, Truck, ChefHat, AlertCircle, RefreshCw, Filter, Calendar } from 'lucide-react';
 import { Button } from '@/components/Button';
 import { apiClient, OrderResponse } from '@/lib/api';
 
@@ -13,6 +13,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterMonth, setFilterMonth] = useState<string>('');
 
   useEffect(() => {
     fetchOrders();
@@ -25,6 +27,31 @@ export default function OrdersPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Filter orders based on status and month
+  const filteredOrders = orders.filter((orderResponse) => {
+    const order = orderResponse.order;
+    
+    // Filter by status
+    if (filterStatus !== 'all') {
+      const orderStatus = order.status.toLowerCase().replace(/\s+/g, '');
+      const selectedStatus = filterStatus.toLowerCase().replace(/\s+/g, '');
+      if (orderStatus !== selectedStatus) {
+        return false;
+      }
+    }
+    
+    // Filter by month
+    if (filterMonth) {
+      const orderDate = new Date(order.tanggal || order.created_at);
+      const orderMonth = orderDate.toISOString().slice(0, 7); // YYYY-MM format
+      if (orderMonth !== filterMonth) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
 
   const fetchOrders = async () => {
     const token = localStorage.getItem('authToken');
@@ -53,13 +80,14 @@ export default function OrdersPage() {
 
       if (data.length === 0) {
         console.log('⚠️ No orders found');
+        console.log('💡 Tip: Place an order first by going to Menu → Add to Cart → Checkout');
       }
 
       setOrders(data);
       setLastUpdate(new Date());
     } catch (err) {
       console.error('❌ Error fetching orders:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Gagal memuat pesanan';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load orders';
       setError(errorMessage);
       console.error('Error details:', {
         message: errorMessage,
@@ -119,11 +147,11 @@ export default function OrdersPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'dikemas':
-        return 'Sedang Dikemas';
+        return 'Being Packed';
       case 'dikirim':
-        return 'Sedang Dikirim';
+        return 'Being Shipped';
       case 'selesai':
-        return 'Selesai';
+        return 'Completed';
       default:
         return status;
     }
@@ -141,21 +169,72 @@ export default function OrdersPage() {
           <p className="text-xl text-gray-600">Track your order status and history</p>
         </div>
 
-        {/* Refresh Button */}
-        <div className="flex justify-between items-center mb-6">
-          <p className="text-sm text-gray-500">
-            Last updated: {lastUpdate.toLocaleTimeString('id-ID')}
-          </p>
-          <Button
-            onClick={fetchOrders}
-            variant="outline"
-            size="sm"
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+        {/* Refresh Button and Filters */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-gray-500">
+              Last updated: {lastUpdate.toLocaleTimeString('id-ID')}
+            </p>
+            <Button
+              onClick={fetchOrders}
+              variant="outline"
+              size="sm"
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+              >
+                <option value="all">All Status</option>
+                <option value="belum dikonfirm">Waiting Confirmation</option>
+                <option value="dimasak">Being Cooked</option>
+                <option value="diantar">Being Delivered</option>
+                <option value="sampai">Arrived</option>
+              </select>
+            </div>
+            
+            {/* Month Filter */}
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-gray-500" />
+              <input
+                type="month"
+                value={filterMonth}
+                onChange={(e) => setFilterMonth(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                placeholder="Filter by month"
+              />
+              {filterMonth && (
+                <button
+                  onClick={() => setFilterMonth('')}
+                  className="text-gray-500 hover:text-gray-700"
+                  title="Clear month filter"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* Filter Results Info */}
+        {(filterStatus !== 'all' || filterMonth) && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <span className="font-semibold">Filtered:</span> Showing {filteredOrders.length} of {orders.length} orders
+            {filterStatus !== 'all' && <span> • Status: {filterStatus}</span>}
+            {filterMonth && <span> • Month: {new Date(filterMonth + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</span>}
+          </div>
+        )}
 
         {/* Orders List */}
         {loading ? (
@@ -171,9 +250,9 @@ export default function OrdersPage() {
               Try Again
             </Button>
           </div>
-        ) : orders.length > 0 ? (
+        ) : filteredOrders.length > 0 ? (
           <div className="space-y-4">
-            {orders.map((orderResponse, index) => {
+            {filteredOrders.map((orderResponse, index) => {
               const order = orderResponse.order;
               const detail = orderResponse.detail;
               const statusInfo = getStatusInfo(order.status);
@@ -262,12 +341,31 @@ export default function OrdersPage() {
         ) : (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">📦</div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">No Orders Yet</h3>
-            <p className="text-gray-500 mb-8">Start ordering your favorite menu!</p>
-            <Button variant="primary" size="lg" onClick={() => router.push('/')}>
-              <Package className="w-5 h-5 mr-2" />
-              View Menu
-            </Button>
+            <h3 className="text-2xl font-bold text-gray-700 mb-2">
+              {orders.length > 0 ? 'No Orders Match Filter' : 'No Orders Yet'}
+            </h3>
+            <p className="text-gray-500 mb-8">
+              {orders.length > 0 
+                ? 'Try adjusting your filters to see more orders' 
+                : 'Start ordering your favorite menu!'}
+            </p>
+            {orders.length === 0 ? (
+              <Button variant="primary" size="lg" onClick={() => router.push('/')}>
+                <Package className="w-5 h-5 mr-2" />
+                View Menu
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="lg" 
+                onClick={() => {
+                  setFilterStatus('all');
+                  setFilterMonth('');
+                }}
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
         )}
       </div>

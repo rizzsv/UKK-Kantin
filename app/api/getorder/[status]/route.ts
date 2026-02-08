@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { status: string } }
+  { params }: { params: Promise<{ status: string }> }
 ) {
   try {
-    const status = params.status;
+    const { status } = await params;
     
     // Get headers
     const token = request.headers.get("authorization");

@@ -160,7 +160,7 @@ export default function AdminLogin() {
     <>
       <SuccessNotification
         show={showLoginSuccess}
-        message="Selamat datang Admin! Login berhasil."
+        message="Welcome Admin! Login successful."
         onClose={() => setShowLoginSuccess(false)}
       />
       
@@ -245,7 +245,7 @@ export default function AdminLogin() {
             <Button
               type="submit"
               variant="primary"
-              className="w-full !text-black"
+              className="w-full !text-white"
               disabled={loading}
             >
               {loading ? (
@@ -266,7 +266,7 @@ export default function AdminLogin() {
           <div className="text-center pt-4 border-t border-gray-200">
             <p className="text-gray-600 text-sm">
               Don't have an account?{' '}
-              <Link href="/admin/register" className="text-blue-600 hover:text-blue-700 font-semibold">
+              <Link href="/admin/register" className="text-blue-600 hover:text-white hover:bg-blue-600 px-2 py-1 rounded font-semibold transition-all">
                 Register here
               </Link>
             </p>
@@ -275,7 +275,7 @@ export default function AdminLogin() {
 
         {/* Back to Home */}
         <div className="text-center mt-6">
-          <Link href="/" className="text-gray-600 hover:text-gray-800 text-sm font-medium">
+          <Link href="/" className="text-gray-600 hover:text-white hover:bg-gray-600 px-3 py-1 rounded text-sm font-medium transition-all">
             ← Back to Home
           </Link>
         </div>

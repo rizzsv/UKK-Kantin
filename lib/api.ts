@@ -158,7 +158,7 @@ class ApiClient {
       if (response.status === 401) {
         // Check if this is a login endpoint
         if (endpoint.includes('login')) {
-          throw new Error('Username atau password salah. Silakan coba lagi.');
+          throw new Error('Username or password is incorrect. Please try again.');
         } else {
           // For menu endpoints that might be public, provide a more helpful message
           if (endpoint.includes('getmenufood') || endpoint.includes('getmenuminuman')) {
@@ -166,12 +166,12 @@ class ApiClient {
             // Return empty array for menu endpoints instead of throwing
             return [];
           }
-          throw new Error('Unauthorized. Silakan login terlebih dahulu.');
+          throw new Error('Unauthorized. Please login first.');
         }
       } else if (response.status === 404) {
-        throw new Error('Endpoint tidak ditemukan.');
+        throw new Error('Endpoint not found.');
       } else if (response.status === 500) {
-        throw new Error('Server error. Silakan coba lagi nanti.');
+        throw new Error('Server error. Please try again later.');
       } else {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
@@ -331,10 +331,10 @@ class ApiClient {
 
         const response = await this.request(`/showorder/${status}`);
 
-        console.log(`📦 Response for ${status}:`, response);
+        console.log(`📦 Response for ${status}:`, JSON.stringify(response, null, 2).substring(0, 300));
 
         // Handle the API response structure
-        // Expected: { status: true, message: "...", data: { order: {...}, detail: [...] } }
+        // Expected: { status: "success", message: "...", data: [{id, tanggal, ..., detail_trans: [...]}] }
         
         if (!response) {
           console.log(`⚠️ No response for status "${status}"`);
@@ -342,48 +342,37 @@ class ApiClient {
         }
 
         // Check if the response has the expected structure
-        if (response.status === true && response.data) {
-          const { data } = response;
+        if (response.status === 'success' && response.data && Array.isArray(response.data)) {
+          console.log(`✅ Found ${response.data.length} orders with status "${status}"`);
           
-          // Case 1: Single order object { order: {...}, detail: [...] }
-          if (data.order && Array.isArray(data.detail)) {
-            const orderResponse: OrderResponse = {
-              order: data.order,
-              detail: data.detail
-            };
-            allOrders.push(orderResponse);
-            console.log(`✅ Found 1 order with status "${status}" (ID: ${data.order.id})`);
-          }
-          // Case 2: Array of orders [{ order: {...}, detail: [...] }, ...]
-          else if (Array.isArray(data)) {
-            const validOrders = data
-              .filter((item: any) => item.order && Array.isArray(item.detail))
-              .map((item: any) => ({
-                order: item.order,
-                detail: item.detail
-              }));
-            
-            if (validOrders.length > 0) {
-              allOrders.push(...validOrders);
-              console.log(`✅ Found ${validOrders.length} orders with status "${status}"`);
+          // Transform each order to OrderResponse format
+          response.data.forEach((orderData: any) => {
+            if (orderData && orderData.detail_trans) {
+              const orderResponse: OrderResponse = {
+                order: {
+                  id: orderData.id,
+                  tanggal: orderData.tanggal,
+                  id_siswa: orderData.id_siswa,
+                  id_stan: orderData.id_stan,
+                  status: orderData.status,
+                  maker_id: orderData.maker_id,
+                  created_at: orderData.created_at,
+                  updated_at: orderData.updated_at,
+                },
+                detail: orderData.detail_trans.map((detailItem: any) => ({
+                  id: detailItem.id,
+                  id_transaksi: detailItem.id_transaksi,
+                  id_menu: detailItem.id_menu,
+                  qty: detailItem.qty,
+                  harga_beli: detailItem.harga_beli,
+                  created_at: detailItem.created_at,
+                  updated_at: detailItem.updated_at,
+                })),
+              };
+              allOrders.push(orderResponse);
+              console.log(`✅ Processed order ID: ${orderData.id} with ${orderData.detail_trans.length} items`);
             }
-          }
-          else {
-            console.log(`⚠️ Unexpected data structure for status "${status}":`, data);
-          }
-        } else if (response.data && Array.isArray(response.data)) {
-          // Fallback: response.data is directly an array
-          const validOrders = response.data
-            .filter((item: any) => item.order && Array.isArray(item.detail))
-            .map((item: any) => ({
-              order: item.order,
-              detail: item.detail
-            }));
-          
-          if (validOrders.length > 0) {
-            allOrders.push(...validOrders);
-            console.log(`✅ Found ${validOrders.length} orders with status "${status}"`);
-          }
+          });
         } else {
           console.log(`ℹ️ No orders found with status: "${status}"`);
         }

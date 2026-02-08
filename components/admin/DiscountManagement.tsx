@@ -468,7 +468,7 @@ export function DiscountManagement() {
                 </div>
                 <button
                   onClick={handleCloseModal}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                  className="text-gray-400 hover:text-white hover:bg-red-500 transition-all p-2 rounded-lg"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -598,7 +598,7 @@ export function DiscountManagement() {
                 </div>
                 <button
                   onClick={handleCloseMenuModal}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                  className="text-gray-400 hover:text-white hover:bg-red-500 transition-all p-2 rounded-lg"
                 >
                   <X className="w-6 h-6" />
                 </button>

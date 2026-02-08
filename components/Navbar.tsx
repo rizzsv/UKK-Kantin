@@ -87,25 +87,25 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               href="/"
-              className="text-gray-700 hover:text-blue-600 font-semibold transition-colors duration-200"
+              className="text-gray-700 hover:text-white hover:bg-blue-600 px-3 py-2 rounded-lg font-semibold transition-all duration-200"
             >
               Menu
             </Link>
             <Link
               href="/discounts"
-              className="text-gray-700 hover:text-orange-600 font-semibold transition-colors duration-200 flex items-center gap-1"
+              className="text-gray-700 hover:text-white hover:bg-orange-600 px-3 py-2 rounded-lg font-semibold transition-all duration-200 flex items-center gap-1"
             >
               <span>🏷️</span> Promo
             </Link>
             <Link
               href="/orders"
-              className="text-gray-700 hover:text-blue-600 font-semibold transition-colors duration-200"
+              className="text-gray-700 hover:text-white hover:bg-blue-600 px-3 py-2 rounded-lg font-semibold transition-all duration-200"
             >
               My Orders
             </Link>
             <Link
               href="/about"
-              className="text-gray-700 hover:text-blue-600 font-semibold transition-colors duration-200"
+              className="text-gray-700 hover:text-white hover:bg-blue-600 px-3 py-2 rounded-lg font-semibold transition-all duration-200"
             >
               About
             </Link>
@@ -117,10 +117,10 @@ export function Navbar() {
             <div className="relative" ref={profileMenuRef}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-2 p-3 hover:bg-gray-100 rounded-full transition-colors duration-200 group"
+                className="flex items-center gap-2 p-3 hover:bg-blue-600 rounded-full transition-colors duration-200 group"
               >
-                <User className="w-6 h-6 text-gray-700 group-hover:text-blue-600 transition-colors" />
-                <ChevronDown className={`w-4 h-4 text-gray-700 transition-transform duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
+                <User className="w-6 h-6 text-gray-700 group-hover:text-white transition-colors" />
+                <ChevronDown className={`w-4 h-4 text-gray-700 group-hover:text-white transition-all duration-200 ${showProfileMenu ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Dropdown Menu */}

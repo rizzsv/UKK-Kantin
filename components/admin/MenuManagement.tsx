@@ -258,7 +258,7 @@ export function MenuManagement() {
         <Button
           onClick={handleAdd}
           variant="primary"
-          className="flex items-center gap-2 !text-black"
+          className="flex items-center gap-2 !text-white"
         >
           <Plus className="w-5 h-5" />
           Add Menu
@@ -271,7 +271,7 @@ export function MenuManagement() {
           onClick={() => setActiveTab('makanan')}
           variant={activeTab === 'makanan' ? 'primary' : 'outline'}
           size="sm"
-          className={activeTab === 'makanan' ? '!text-black' : ''}
+          className={activeTab === 'makanan' ? '!text-white' : ''}
         >
           Food ({menus.filter((m) => m.jenis === 'makanan').length})
         </Button>
@@ -279,7 +279,7 @@ export function MenuManagement() {
           onClick={() => setActiveTab('minuman')}
           variant={activeTab === 'minuman' ? 'primary' : 'outline'}
           size="sm"
-          className={activeTab === 'minuman' ? '!text-black' : ''}
+          className={activeTab === 'minuman' ? '!text-white' : ''}
         >
           Beverages ({menus.filter((m) => m.jenis === 'minuman').length})
         </Button>
@@ -317,7 +317,7 @@ export function MenuManagement() {
               : `Add your first ${activeTab} menu`}
           </p>
           {!searchQuery && (
-            <Button onClick={handleAdd} variant="primary" className="!text-black">
+            <Button onClick={handleAdd} variant="primary" className="!text-white">
               <Plus className="w-5 h-5 mr-2" />
               Add Menu
             </Button>
@@ -384,7 +384,7 @@ export function MenuManagement() {
                     onClick={() => handleEdit(menu)}
                     variant="outline"
                     size="sm"
-                    className="flex-1 !text-blue-600"
+                    className="flex-1 !text-white !bg-blue-600 !border-blue-600 hover:!bg-blue-700"
                   >
                     <Edit2 className="w-4 h-4 mr-1" />
                     Edit
@@ -393,7 +393,7 @@ export function MenuManagement() {
                     onClick={() => menu.id && handleDelete(menu.id, menu.nama_makanan)}
                     variant="outline"
                     size="sm"
-                    className="flex-1 !text-red-600 !border-red-300 hover:!bg-red-50"
+                    className="flex-1 !text-white !bg-red-600 !border-red-600 hover:!bg-red-700"
                     disabled={deleteMenuMutation.isPending || !menu.id}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />
@@ -522,7 +522,7 @@ export function MenuManagement() {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="flex-1 !text-black"
+                  className="flex-1 !text-white"
                   disabled={createMenuMutation.isPending || updateMenuMutation.isPending}
                 >
                   {createMenuMutation.isPending || updateMenuMutation.isPending ? (
@@ -632,7 +632,7 @@ export function MenuManagement() {
                     handleEdit(selectedMenuDetail);
                   }}
                   variant="primary"
-                  className="flex-1 !text-black"
+                  className="flex-1 !text-white"
                 >
                   <Edit2 className="w-5 h-5 mr-2" />
                   Edit Menu

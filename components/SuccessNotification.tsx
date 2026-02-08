@@ -45,7 +45,7 @@ export function SuccessNotification({
 
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold text-gray-900 mb-1">
-              Berhasil! 🎉
+              Success! 🎉
             </h3>
             <p className="text-sm text-gray-600 leading-relaxed">
               {message}

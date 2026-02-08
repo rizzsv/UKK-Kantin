@@ -89,13 +89,13 @@ export default function CartPage() {
   const handleCheckoutDirect = async () => {
     const token = localStorage.getItem('authToken');
     if (!token) {
-      toast.error('Silakan login terlebih dahulu');
+      toast.error('Please login first');
       router.push('/login');
       return;
     }
 
     if (cartItems.length === 0) {
-      toast.error('Keranjang kosong');
+      toast.error('Cart is empty');
       return;
     }
 
@@ -130,7 +130,7 @@ export default function CartPage() {
         try {
           const result = await apiClient.createOrder(orderData);
           console.log('✅ Order created:', result);
-          toast.success('Pesanan berhasil dibuat!');
+          toast.success('Order successfully created!');
         } catch (error) {
           console.error('❌ Order failed:', error);
           throw error;
@@ -140,7 +140,7 @@ export default function CartPage() {
       // Clear cart after successful orders
       clearCart();
       
-      toast.success('Semua pesanan berhasil!');
+      toast.success('All orders successful!');
       
       // Navigate to orders page
       setTimeout(() => {
@@ -149,7 +149,7 @@ export default function CartPage() {
 
     } catch (err) {
       console.error('Checkout error:', err);
-      const errorMsg = err instanceof Error ? err.message : 'Gagal membuat pesanan';
+      const errorMsg = err instanceof Error ? err.message : 'Failed to create order';
       toast.error(errorMsg);
     } finally {
       setIsProcessing(false);
@@ -200,9 +200,9 @@ export default function CartPage() {
                         </div>
                         <button
                           onClick={() => removeItem(item.id)}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors group"
+                          className="p-2 hover:bg-red-500 rounded-lg transition-colors group"
                         >
-                          <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
+                          <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-white transition-colors" />
                         </button>
                       </div>
 
@@ -332,7 +332,7 @@ export default function CartPage() {
                   className="w-full"
                   onClick={() => router.push('/')}
                 >
-                  Lanjut Belanja
+                  Continue Shopping
                 </Button>
               </div>
             </div>
@@ -340,11 +340,11 @@ export default function CartPage() {
         ) : (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🛒</div>
-            <h3 className="text-2xl font-bold text-gray-700 mb-2">Keranjang Kosong</h3>
-            <p className="text-gray-500 mb-8">Tambahkan menu favorit Anda!</p>
+            <h3 className="text-2xl font-bold text-gray-700 mb-2">Cart is Empty</h3>
+            <p className="text-gray-500 mb-8">Add your favorite menu items!</p>
             <Button variant="primary" size="lg" onClick={() => router.push('/')}>
               <ShoppingBag className="w-5 h-5 mr-2" />
-              Lihat Menu
+              View Menu
             </Button>
           </div>
         )}

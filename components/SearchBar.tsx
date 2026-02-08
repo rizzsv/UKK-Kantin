@@ -25,7 +25,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search menu...' }: S
       {value && (
         <button
           onClick={() => onChange('')}
-          className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-white hover:bg-blue-600 rounded-lg px-2 transition-all"
           aria-label="Clear search"
         >
           <X className="w-5 h-5" />

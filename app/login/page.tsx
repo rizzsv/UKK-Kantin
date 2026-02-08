@@ -27,7 +27,7 @@ export default function LoginPage() {
       if (user.role === 'student') {
         router.replace('/');
       } else if (user.role === 'admin') {
-        alert('Anda sudah login sebagai admin. Silakan logout terlebih dahulu.');
+        alert('You are already logged in as admin. Please logout first.');
         router.replace('/admin/dashboard');
       }
     }
@@ -91,7 +91,7 @@ export default function LoginPage() {
       }, 1500);
     } catch (err) {
       console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Login gagal. Silakan coba lagi.');
+      setError(err instanceof Error ? err.message : 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,7 +101,7 @@ export default function LoginPage() {
     <>
       <SuccessNotification
         show={showSuccess}
-        message="Selamat datang kembali! Anda berhasil login."
+        message="Welcome back! You have successfully logged in."
         onClose={() => setShowSuccess(false)}
       />
       
@@ -175,7 +175,7 @@ export default function LoginPage() {
 
             {/* Forgot Password Link */}
             <div className="text-right">
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-800 font-semibold transition-colors">
+              <a href="#" className="text-sm text-blue-600 hover:text-white hover:bg-blue-600 px-3 py-1 rounded font-semibold transition-all">
                 Forgot Password?
               </a>
             </div>
@@ -216,7 +216,7 @@ export default function LoginPage() {
           <div className="text-center">
             <p className="text-gray-600">
               Don't have an account?{' '}
-              <Link href="/register" className="text-blue-600 hover:text-blue-800 font-bold transition-colors">
+              <Link href="/register" className="text-blue-600 hover:text-white hover:bg-blue-600 px-2 py-1 rounded font-bold transition-all">
                 Register Now
               </Link>
             </p>

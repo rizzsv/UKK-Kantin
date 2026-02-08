@@ -451,7 +451,7 @@ export default function AdminDashboard() {
               onClick={handleLogout}
               variant="outline"
               size="sm"
-              className="!border-red-300 !text-red-600 hover:!bg-red-50"
+              className="!border-red-600 !text-white !bg-red-600 hover:!bg-red-700"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Logout

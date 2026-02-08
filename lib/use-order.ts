@@ -51,13 +51,13 @@ export const useCreateOrder = () => {
         const response = await createOrderAPI(body);
 
         console.log('✅ Order response:', response);
-        toast.success(response.message || "Pesanan berhasil diproses!");
+        toast.success(response.message || "Order successfully processed!");
 
         return response;
       } catch (error: any) {
         console.error('❌ Order error:', error);
         
-        const errorMessage = error.message || "Gagal membuat pesanan, silakan coba lagi";
+        const errorMessage = error.message || "Failed to create order, please try again";
         toast.error(errorMessage);
 
         throw error;
